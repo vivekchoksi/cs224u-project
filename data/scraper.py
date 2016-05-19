@@ -9,6 +9,7 @@ import cPickle as pickle
 import urllib
 import re
 from urlparse import urlparse
+import sys
 #import unicodedata
 #import requests
 
@@ -20,18 +21,21 @@ import codecs
 import shutil
 #import glob
 
-'''
-Superclass
-'''
+
 class IdReader():
+	'''
+	Superclass
+
+	Any IdReader that yields (header_text, book_id) may be used with Scraper.
+	'''
 	def yield_id(self):
-		# yield (header_text, book_id)
 		yield ("some_header_text", 14571)
 
-'''
-UrlReader for a Gutenberg "Bookshelf" page.
-'''
+
 class BookshelfIdReader(IdReader):
+	'''
+	IdReader for a Gutenberg "Bookshelf" page.
+	'''
 	def __init__(self, url):
 		self.url = url
 
@@ -106,23 +110,22 @@ class Scraper():
 		def fetch(mirrorurl, filename, outputfilename):
 			'''Fetch a file from a gutenberg mirror, if it hasn't been fetched earlier today.'''
 			mustdownload = False
-			if os.path.exists(filename):
-				st = os.stat(filename)
+			if os.path.exists(outputfilename):
+				st = os.stat(outputfilename)
 				modified = datetime.date.fromtimestamp(st.st_mtime)
 				today = datetime.date.today()
 				if modified == today:
-					print "%s exists, and is up-to-date. No need to download it." % filename
+					print "%s exists, and is up-to-date. No need to download it." % outputfilename
 				else:
-					print "%d exists, but is out of date. Downloading..." % filename
+					print "%d exists, but is out of date. Downloading..." % outputfilename
 					mustdownload = True
 			else:
-				print "%s not found, downloading..." % filename
+				print "%s not found, downloading..." % outputfilename
 				mustdownload = True
 
 			if mustdownload:
 				url = mirrorurl + filename
 				urllib.urlretrieve(url, outputfilename)
-
 
 		# Ensure directories exist.
 		if not os.path.exists("indexes"):
@@ -134,13 +137,11 @@ class Scraper():
 		if not os.path.exists("ebooks-unzipped"):
 			os.mkdir("ebooks-unzipped")
 
-
 		# Download the book index, and unzip it.
 		fetch(self.mirror, "GUTINDEX.zip", "indexes/GUTINDEX.zip")
 		if not os.path.exists("indexes/GUTINDEX.ALL") or older("indexes/GUTINDEX.ALL", "indexes/GUTINDEX.zip"):
 			print "Extracting GUTINDEX.ALL from GUTINDEX.zip..."
 			zipfile.ZipFile("indexes/GUTINDEX.zip").extractall("indexes/")
-
 
 		# Download the file index, and gunzip it.
 		fetch(self.mirror, "ls-lR.gz", "indexes/ls-lR.gz")
@@ -151,7 +152,6 @@ class Scraper():
 			outf.write(inf.read())
 			inf.close()
 			outf.close()
-
 
 		# Parse the file index
 		if not os.path.exists("indexes/mirrordir.p") or not os.path.exists("indexes/mirrorname.p"):
@@ -333,9 +333,14 @@ class Scraper():
 					errors.append("Error: can't unzip %s" % fn) # Some files in the Gutenberg archive are damaged.
 
 
+mirror_url = "http://eremita.di.uminho.pt/gutenberg/"
+if len(sys.argv) > 1:
+	mirror_url = str(sys.argv[1])
+
 
 #scraper = Scraper("http://www.mirrorservice.org/sites/ftp.ibiblio.org/pub/docs/books/gutenberg/")
-scraper = Scraper("http://eremita.di.uminho.pt/gutenberg/")
+# scraper = Scraper("http://eremita.di.uminho.pt/gutenberg/")
+scraper = Scraper(mirror_url)
 # temporarily read the local html file, since Chris got blocked...
 scraper.book_id_to_txt(BookshelfIdReader("bestsellers.html"))
 # scraper.book_id_to_txt(BookshelfUrlReader("bestsellers.html"))
