@@ -38,6 +38,7 @@ class ExampleReader():
     for file in self._get_filenames(era):
       with open(file, 'r') as infile:
         for line in infile:
+          # TODO: word will need processing (i.e., stripping punctuation, setting all chars to lowercase, etc.)
           for word in line.split():
             yield word
 
