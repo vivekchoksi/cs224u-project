@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
-"""This module implements a Correlator tool as described by The Stanford Literary Lab.
+"""This module implements a Correlator tool as described by The Stanford
+Literary Lab.
 
 http://litlab.stanford.edu/LiteraryLabPamphlet4.pdf
 """
@@ -231,8 +232,9 @@ class Correlator():
 
     counter = 0
 
-    # NOTE(vivekchoksi): Might be faster if this operation were vectorized;
-    # that is, compute Pearson coefficients using matrices instead of a loop.
+    # NOTE(vivekchoksi): This is very slow; would take ~15 hours to run on my
+    # laptop. Might be faster if this operation were vectorized; that is, by
+    # computing Pearson coefficients using matrices instead of a loop.
     for w1 in self.counts:
       correlations[w1] = self._correlate_word(w1, k)
 
@@ -241,31 +243,37 @@ class Correlator():
         logging.info('\tFinished correlating {} of {} words...'.format(
           counter, len(self.counts)))
 
-      if counter == 150:
-        break
+      # if counter == 150:
+      #   break
 
     self.correlations = dict(correlations)
 
   def _correlate_word(self, word, k):
+    """Return the k words that correlate most highly with the input word.
+
+    Similarity is calculated using the Pearson correlation coefficient.
+    """
     # Correlations for `word`. E.g. correlations[word2] = Pearson coefficient
     correlations = {}
 
     for word2 in self.counts:
       if word is not word2:
-        correlations[word2] = pearsonr(self.counts[word], self.counts[word2])[0]
+        correlations[word2] = pearsonr(
+          self.counts[word], self.counts[word2])[0]
 
     # To save space, only store top k correlations. That is, for each w1,
     # only store k w2. The trade-off is that there is redundant computation.
-    return sorted(correlations.items(), key=operator.itemgetter(1), reverse=True)[:k]
+    return sorted(
+      correlations.items(), key=operator.itemgetter(1), reverse=True)[:k]
 
 
 def run_correlator():
   correlator = Correlator()
-  # correlator.preprocess_counts(AmericanBestsellersReader(), 'ab_counts.pickle')
-  correlator.load_counts('ab_counts.pickle')
+  correlator.preprocess_counts(AmericanBestsellersReader(), 'ab_counts.pickle')
+  # correlator.load_counts('ab_counts.pickle')
   # correlator.preprocess_correlations(k=20, pickle_dump_file='ab_correlations.pickle')
   # correlator.load_correlations('ab_correlations.pickle')
-  print correlator.get_cohort('great')
+  print 'Cohort for \'war\':', correlator.get_cohort('war')
   pdb.set_trace()
 
 def main():
