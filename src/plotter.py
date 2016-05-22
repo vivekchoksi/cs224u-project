@@ -69,9 +69,13 @@ def main():
     stream=sys.stderr, level=logging.DEBUG)
   plotter = Plotter()
   plotter.load_counts('ab_counts.pickle')
+  # plotter.plot_cohort_frequencies([
+  #   ['war', 'shortage', 'casualties'],
+  #   ['thou', 'didst', 'hast']
+  # ])
   plotter.plot_cohort_frequencies([
-    ['war', 'shortage', 'casualties'],
-    ['thou', 'didst', 'hast']
+    ['he', 'him', 'his', 'man', 'men'],
+    ['she', 'her', 'hers', 'woman', 'women']
   ])
 
 if __name__ == '__main__':

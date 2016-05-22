@@ -58,9 +58,9 @@ class Reader():
   def _get_filenames(self, era):
     # Hard-coded example.
     if era == 0:
-      filenames = ['ebooks-unzipped/1895/12190-8.txt']
+      filenames = ['ebooks/1895/12190-8.txt']
     elif era == 1:
-      filenames = ['ebooks-unzipped/1923/1156.txt']
+      filenames = ['ebooks/1923/1156.txt']
     else:
       raise ValueError('Invalid era.')
 
@@ -96,7 +96,7 @@ class AmericanBestsellersReader(Reader):
       self.END_YEAR + 1)
 
     filenames = []
-    corpus_dir = os.path.join(DATA_DIR, 'ebooks-unzipped')
+    corpus_dir = os.path.join(DATA_DIR, 'ebooks')
     for year in range(start_era, end_era):
       year_dir = os.path.join(corpus_dir, str(year))
       for filename in os.listdir(year_dir):
