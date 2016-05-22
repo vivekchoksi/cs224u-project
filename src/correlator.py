@@ -47,8 +47,7 @@ class Reader():
       with open(file, 'r') as infile:
         for line in infile:
           # Make lowercase, remove punctuation, and split into words.
-          for word in line.lower().translate(
-            string.maketrans('', ''), string.punctuation).split():
+          for word in util.tokenize_words(line):
             yield word
 
   def get_num_eras(self):
@@ -58,9 +57,9 @@ class Reader():
   def _get_filenames(self, era):
     # Hard-coded example.
     if era == 0:
-      filenames = ['ebooks/1895/12190-8.txt']
+      filenames = ['ebooks/1895/Beside the Bonnie Brier Bush, 7179-8.txt']
     elif era == 1:
-      filenames = ['ebooks/1923/1156.txt']
+      filenames = ['ebooks/1923/Babbitt, 1156.txt']
     else:
       raise ValueError('Invalid era.')
 
@@ -269,12 +268,13 @@ class Correlator():
 
 def run_correlator():
   correlator = Correlator()
-  correlator.preprocess_counts(AmericanBestsellersReader(), 'ab_counts.pickle')
+  correlator.preprocess_counts(Reader())
+  # correlator.preprocess_counts(AmericanBestsellersReader(), 'ab_counts.pickle')
   # correlator.load_counts('ab_counts.pickle')
   # correlator.preprocess_correlations(k=20, pickle_dump_file='ab_correlations.pickle')
   # correlator.load_correlations('ab_correlations.pickle')
-  print 'Cohort for \'war\':', correlator.get_cohort('war')
-  pdb.set_trace()
+  # print 'Cohort for \'war\':', correlator.get_cohort('war')
+  # pdb.set_trace()
 
 def main():
   logging.basicConfig(format='[%(name)s %(asctime)s]\t%(msg)s',
