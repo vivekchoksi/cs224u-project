@@ -22,6 +22,47 @@ import util
 DATA_DIR = os.path.join(os.path.dirname(__file__), '../data/')
 
 
+class BookReader():
+  """
+  Read data from the corpus by book.
+  """
+
+  def __init__(self):
+    pass
+
+  def _get_filenames(self, era):
+    # Hard-coded example.
+    if era == 0:
+      filenames = ['ebooks-unzipped/1895/12190-8.txt']
+    elif era == 1:
+      filenames = ['ebooks-unzipped/1923/1156.txt']
+    else:
+      raise ValueError('Invalid era.')
+
+    return [os.path.join(DATA_DIR, f) for f in filenames]
+
+  def read_book(self):
+    '''
+    By default, return bag of words representation of book
+    '''
+    for file in self._get_filenames():
+
+      #by default, yield empty data
+      yield(file, [])
+
+      # c = Counter()
+      # with open(file, 'r') as book:
+      #   for line.split() in book: 
+      #     c.update(line)
+
+      #yield (file, c)
+
+# class WordCountsBookReader():
+#   """
+  
+#   """
+
+
 class Reader():
   """Read data from the corpus by "era". 
 
@@ -96,7 +137,7 @@ class AmericanBestsellersReader(Reader):
       self.END_YEAR + 1)
 
     filenames = []
-    corpus_dir = os.path.join(DATA_DIR, 'ebooks-unzipped')
+    corpus_dir = os.path.join(DATA_DIR, 'ebooks')
     for year in range(start_era, end_era):
       year_dir = os.path.join(corpus_dir, str(year))
       for filename in os.listdir(year_dir):
