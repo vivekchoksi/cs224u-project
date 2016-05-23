@@ -28,3 +28,8 @@ def tokenize_words(line):
   # Stem words.
   fmt_line = fmt_line.decode('utf-8')
   return [STEMMER.stem(w) for w in fmt_line.split()]
+
+def fn_to_title(fpath):
+  filename = fpath.split("/")[-1]
+  return filename.split(",")[0]
+

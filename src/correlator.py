@@ -15,6 +15,7 @@ import string
 import pdb
 import cPickle as pickle
 from collections import defaultdict
+from collections import Counter
 from scipy.stats.stats import pearsonr
 
 import util
@@ -43,24 +44,58 @@ class BookReader():
 
   def read_book(self):
     '''
-    By default, return bag of words representation of book
+    By default, yield empty data
     '''
     for file in self._get_filenames():
+      yield(file, None)
 
-      #by default, yield empty data
-      yield(file, [])
 
-      # c = Counter()
-      # with open(file, 'r') as book:
-      #   for line.split() in book: 
-      #     c.update(line)
 
-      #yield (file, c)
 
-# class WordCountsBookReader():
-#   """
-  
-#   """
+
+class WordCountsBookReader(BookReader):
+  """
+  Yields Counter of words for each book
+  """
+
+  def __init__(self, root_dir):
+    self.root_dir = root_dir
+
+  def read_book(self):
+
+    for file in self._get_filenames(self.root_dir):
+      c = Counter()
+      print "inits counter"
+      with open(file, 'r') as infile:
+        print file
+        for line in infile:
+          # Make lowercase, remove punctuation, and split into words.
+          c.update(util.tokenize_words(line))
+          #c.update(line.split()
+
+      yield (util.fn_to_title(file), c)
+
+  def _get_filenames(self, root_dir):
+    """
+    Given root directory, returns list of all books within all subdirectories
+    """
+    filenames = []
+    corpus_dir = os.path.join(DATA_DIR, root_dir)
+
+    for subdir in os.walk(corpus_dir):
+      for filename in os.listdir(subdir[0]):
+        filepath = os.path.join(subdir[0], filename)
+        if os.path.isfile(filepath) and not filename.startswith('.'):
+          filenames.append(filepath)
+
+    return filenames
+
+
+
+
+
+
+
 
 
 class Reader():
@@ -320,7 +355,15 @@ def run_correlator():
 def main():
   logging.basicConfig(format='[%(name)s %(asctime)s]\t%(msg)s',
     stream=sys.stderr, level=logging.DEBUG)
-  run_correlator()
+  #run_correlator()
+
+  wcBookReader = WordCountsBookReader("ebooks")
+  for tup in wcBookReader.read_book():
+    print tup[0]
+    print tup[1].most_common(10)
+    exit()
+
+
 
 if __name__ == '__main__':
   main()
