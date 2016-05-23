@@ -27,9 +27,15 @@ def tokenize_words(line):
 
   # Stem words.
   fmt_line = fmt_line.decode('utf-8')
-  return [STEMMER.stem(w) for w in fmt_line.split()]
+  #return [STEMMER.stem(w) for w in fmt_line.split()]
+  return stem_words(fmt_line.split())
+
+def stem_words(words):
+  """given list of word strings, return list of stemmed words
+  """
+  return [STEMMER.stem(w) for w in words]
 
 def fn_to_title(fpath):
   filename = fpath.split("/")[-1]
-  return filename.split(",")[0]
+  return "".join(filename.split(",")[:-1])
 

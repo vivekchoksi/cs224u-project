@@ -58,40 +58,121 @@ class WordCountsBookReader(BookReader):
   Yields Counter of words for each book
   """
 
-  def __init__(self, root_dir):
-    self.root_dir = root_dir
+  START_YEAR = 1895
+  END_YEAR = 1923
+
+  def __init__(self, era_size=5):
+    self.era_size=era_size
+    self.num_eras = int(np.ceil(\
+      float(self.END_YEAR - self.START_YEAR + 1) / era_size))
 
   def read_book(self):
+    already_processed = set()
 
-    for file in self._get_filenames(self.root_dir):
-      c = Counter()
-      print "inits counter"
-      with open(file, 'r') as infile:
-        print file
-        for line in infile:
-          # Make lowercase, remove punctuation, and split into words.
-          c.update(util.tokenize_words(line))
-          #c.update(line.split()
+    for year, file in self._get_filenames():
+      print file
+      title = util.fn_to_title(file)
+      print title
 
-      yield (util.fn_to_title(file), c)
+      if title not in already_processed:
+        already_processed.add(title)
+        c = Counter()
+        with open(file, 'r') as infile:
+          #print file
+          for line in infile:
+            # Make lowercase, remove punctuation, and split into words.
+            c.update(util.tokenize_words(line))
+            #c.update(line.split()
+        yield (title, (year, c))
 
-  def _get_filenames(self, root_dir):
-    """
-    Given root directory, returns list of all books within all subdirectories
-    """
+  def _get_filenames(self):
+
+    start_era = self.START_YEAR
+    end_era = self.END_YEAR + 1
+
     filenames = []
-    corpus_dir = os.path.join(DATA_DIR, root_dir)
-
-    for subdir in os.walk(corpus_dir):
-      for filename in os.listdir(subdir[0]):
-        filepath = os.path.join(subdir[0], filename)
-        if os.path.isfile(filepath) and not filename.startswith('.'):
-          filenames.append(filepath)
+    corpus_dir = os.path.join(DATA_DIR, 'ebooks')
+    for year in range(start_era, end_era):
+      year_dir = os.path.join(corpus_dir, str(year))
+      for filename in os.listdir(year_dir):
+        if not filename.startswith('.'):
+          filenames.append((year, os.path.join(year_dir, filename)))
 
     return filenames
 
 
+class BookDataProcessor():
+  """
+  Given a BookReader to yield (book, data) pairs, 
+  processes the pairs and stores the resulting data (for use by, say, some Plotter)
+  """
 
+  def __init__(self, book_reader):
+    self.book_reader = book_reader
+
+  def process_book_data(self):
+    for book_title, data in self.book_reader.read_book():
+      # process the book and data
+      continue
+
+
+
+class WordCountsBookDataProcessor(BookDataProcessor):
+
+  def preprocess_word_counts(self, pickle_dump_file=None):
+    """
+    For each book, store a tuple of (year, word counter, total words)
+    """
+
+    self.title_to_data = {}
+
+    for title, data in self.book_reader.read_book():
+      year, counter = data
+      self.title_to_data[title] = (year, counter, sum(counter.values()))
+
+    if pickle_dump_file is not None:
+      util.pickle_dump(self.title_to_data, pickle_dump_file)
+
+
+  def load_word_counts(self, pickle_dump_file):
+    self.title_to_data = util.pickle_load(pickle_dump_file)
+
+
+  def get_data_all_books(self, words):
+    """
+    given ist of words,
+    return three lists, in parallel order:
+      titles (labels)
+      year (x axis)
+      normalized word count (y axis)
+    """
+
+    titles = self.title_to_data.keys()
+    years = []
+    normalized_wcs = []
+
+    for title in titles:
+      data = get_data_single_book(title, words)
+      years.append(data[0])
+      normalized_wcs.append(data[1])
+
+    return titles, years, normalized_wcs
+
+
+  def get_data_single_book(self, title, words):
+    """
+    given book title and list of words,
+    return tuple of (year, normalized word count) 
+    """
+
+    words = util.stem_words(words)
+
+    year, counter, total_wc = self.title_to_data[title]
+
+    raw_wc = sum([counter[word] for word in words])
+    normalized_wc = raw_wc / float(total_wc)
+
+    return (year, normalized_wc)
 
 
 
@@ -352,16 +433,22 @@ def run_correlator():
   # print 'Cohort for \'war\':', correlator.get_cohort('war')
   # pdb.set_trace()
 
+
+def run_wc_by_book():
+  wcp = WordCountsBookDataProcessor(WordCountsBookReader())
+  wcp.preprocess_word_counts("wc_by_book.pickle")
+  #wcp.load_word_counts("wc_by_book.pickle")
+  print wcp.get_data_single_book("Beside the Bonnie Brier Bush", ['brier'])
+
+
+
 def main():
   logging.basicConfig(format='[%(name)s %(asctime)s]\t%(msg)s',
     stream=sys.stderr, level=logging.DEBUG)
   #run_correlator()
+  run_wc_by_book()
 
-  wcBookReader = WordCountsBookReader("ebooks")
-  for tup in wcBookReader.read_book():
-    print tup[0]
-    print tup[1].most_common(10)
-    exit()
+
 
 
 
