@@ -8,6 +8,7 @@ import sys
 import logging
 import matplotlib
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 import numpy as np
 
 import util
@@ -64,18 +65,55 @@ class Plotter():
     plt.legend()
     plt.show()
 
+
+class BookWcPlotter(Plotter):
+  """Plot cohort frequencies by book
+  """
+
+  def plot_cohort_frequencies(self, word_groups):
+
+    title_to_data = self.counts
+
+    colors = cm.rainbow(np.linspace(0, 1, len(word_groups)))
+    # for each word group
+    for word_group, c in zip(word_groups, colors):
+
+      word_group = util.stem_words(word_group)
+
+      years = []
+      normalized_wcs = []
+
+      #for each book
+      for title, data in title_to_data.iteritems():
+        year, counter, total_wc = data
+
+        raw_wc = sum([counter[word] for word in word_group])
+        norm_wc = raw_wc / float(total_wc)
+
+        years.append(year)
+        normalized_wcs.append(norm_wc)
+
+      plt.scatter(years, normalized_wcs, color=c, label='Cohort for \'{}\''.format(word_group[0]))
+
+    plt.title('Word frequencies by Novel')
+    plt.ylabel('Normalized word frequency')
+    plt.xlabel('Year')
+    plt.legend()
+    plt.show()
+
+
 def main():
   logging.basicConfig(format='[%(name)s %(asctime)s]\t%(msg)s',
     stream=sys.stderr, level=logging.DEBUG)
-  plotter = Plotter()
-  plotter.load_counts('ab_counts.pickle')
+  plotter = BookWcPlotter()
+  plotter.load_counts('wc_by_book.pickle')
   # plotter.plot_cohort_frequencies([
   #   ['war', 'shortage', 'casualties'],
   #   ['thou', 'didst', 'hast']
   # ])
   plotter.plot_cohort_frequencies([
-    ['he', 'him', 'his', 'man', 'men'],
-    ['she', 'her', 'hers', 'woman', 'women']
+    ['war', 'fight', 'gun',],
+    ['countryside', 'nature', 'field', ]
   ])
 
 if __name__ == '__main__':
