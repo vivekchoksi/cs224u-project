@@ -60,10 +60,11 @@ class BookshelfIdReader(IdReader):
 			#used to create sub-directory for this group of books
 			header_text = header.get_text()
 	
-			for link in header.find_all_next(["h2","li"]):
+			for link in header.find_all_next(["h2","li", "h3"]):
 
-				# if we find the next header, break
-				if link.name == "h2":
+				# if we find the next header, or a section that is not fiction,
+				#  break
+				if link.name == "h2" or (link.name == "h3" and link.get_text() != "Fiction"):
 					break
 
 				# check if link has 'a'
@@ -337,13 +338,16 @@ mirror_url = "http://eremita.di.uminho.pt/gutenberg/"
 if len(sys.argv) > 1:
 	mirror_url = str(sys.argv[1])
 
-
-#scraper = Scraper("http://www.mirrorservice.org/sites/ftp.ibiblio.org/pub/docs/books/gutenberg/")
-# scraper = Scraper("http://eremita.di.uminho.pt/gutenberg/")
-scraper = Scraper(mirror_url)
+#scraper = Scraper(mirror_url)
 # temporarily read the local html file, since Chris got blocked...
-scraper.book_id_to_txt(BookshelfIdReader("bestsellers.html"))
-# scraper.book_id_to_txt(BookshelfUrlReader("bestsellers.html"))
+#scraper.book_id_to_txt(BookshelfIdReader("bestsellers.html"))
+
+
+for year, book_id in BookshelfIdReader("bestsellers.html").yield_id():
+	print year, book_id
+
+
+
 
 
 
