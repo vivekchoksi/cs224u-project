@@ -441,6 +441,56 @@ class Correlator():
       # Compute the cohort now.
       return self._correlate_word(word, k)
 
+  def report_most_fluctuating_cohorts(
+    self, fluctuation_fn=None):
+    """Reports the cohorts for which the frequencies fluctuated most, given
+    some input function to measure fluctuation.
+
+    Args:
+      fluctuation_fn: a function to report a fluctuation score given an array
+        representing frequency counts of a semantic cohort.
+
+    """
+    if fluctuation_fn is None:
+      fluctuation_fn = Correlator.elementwise_fluctuation
+    logging.info('Computing highest fluctuating cohorts...')
+    fluctuations = {}
+    for word in self.correlations:
+      sum_counts = np.copy(self.counts[word])
+      for other_word, _ in self.get_cohort(word):
+        if other_word is not word:
+          sum_counts += self.counts[other_word]
+      fluctuations[word] = fluctuation_fn(sum_counts)
+    fluctuations = sorted(
+      fluctuations.items(), key=operator.itemgetter(1), reverse=True)
+
+    print 'Cohorts that see the most fluctuation in frequency:'
+    for word, _ in fluctuations[:20]:
+      cohort_words = [w for w, _ in self.get_cohort(word)]
+      print '...', word, ':', cohort_words
+
+  def elementwise_fluctuation(self, array):
+    fluctuation = 0.0
+    for i in range(array.size - 1):
+      fluctuation += np.abs(array[i+1] - array[i])
+    return fluctuation
+
+  def upward_fluctuation(self, array):
+    return array[-1] - array[0]
+
+  def downward_fluctuation(self, array):
+    return array[0] - array[-1]
+
+  def fluctuation_between_halves(self, array):
+    first_half = 0.0
+    second_half = 0.0
+    for i in range(array.size):
+      if i + 1 <= array.size / 2:
+        first_half += array[i]
+      else:
+        second_half += array[i]
+    return second_half - first_half
+
   def _count_occurrences(self, reader):
     """Calculate normalized word frequencies for each word by era as
     self.counts.
@@ -533,14 +583,14 @@ class Correlator():
 
 def run_correlator():
   correlator = Correlator()
-  correlator.preprocess_counts(TwentiethCenturyReader(), 'data/tcc.pickle')
+  # correlator.preprocess_counts(TwentiethCenturyReader(), 'data/pickle/tcc_counts.pickle')
   # correlator.preprocess_counts(AmericanBestsellersReader(), 'ab_counts.pickle')
-  # correlator.load_counts('ab_counts.pickle')
-  # correlator.preprocess_correlations(k=20, pickle_dump_file='ab_correlations.pickle')
-  # correlator.load_correlations('ab_correlations.pickle')
-  print 'Cohort for \'war\':', correlator.get_cohort('war')
-  pdb.set_trace()
-
+  correlator.load_counts('data/pickle/tcc_counts.pickle')
+  # correlator.preprocess_correlations(k=20, pickle_dump_file='data/pickle/tcc_correlations.pickle')
+  correlator.load_correlations('data/pickle/tcc_correlations.pickle')
+  # print 'Cohort for \'war\':', correlator.get_cohort('war')
+  # pdb.set_trace()
+  correlator.report_most_fluctuating_cohorts(correlator.fluctuation_between_halves)
 
 def run_wc_by_book():
   wcp = WordCountsBookDataProcessor(WordCountsBookReader())

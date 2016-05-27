@@ -36,11 +36,12 @@ class Plotter():
   def load_counts(self, pickle_load_file):
     self.counts = util.pickle_load(pickle_load_file)
 
-  def plot_cohort_frequencies(self, word_groups):
+  def plot_cohort_frequencies(self, word_groups, stem=False):
     """Plot frequencies of word groups by era.
 
     Args:
       word_groups: array of arrays comprising word groups.
+      stem (bool): whether to stem the input words.
 
     Usage:
       plotter.plot_cohort_frequencies([
@@ -49,10 +50,13 @@ class Plotter():
       ])
     """
     for word_group in word_groups:
+      if stem:
+        word_group = util.stem_words(word_group)
+
       # Sum frequencies of all words in the group.
       for i in range(len(word_group)):
         if i == 0:
-          sum_frequencies = self.counts[word_group[0]]
+          sum_frequencies = np.copy(self.counts[word_group[0]])
         else:
           sum_frequencies += self.counts[word_group[i]]
 
@@ -105,15 +109,19 @@ class BookWcPlotter(Plotter):
 def main():
   logging.basicConfig(format='[%(name)s %(asctime)s]\t%(msg)s',
     stream=sys.stderr, level=logging.DEBUG)
-  plotter = BookWcPlotter()
-  plotter.load_counts('wc_by_book.pickle')
+  plotter = Plotter()
+  plotter.load_counts('data/pickle/tcc_counts.pickle')
   # plotter.plot_cohort_frequencies([
   #   ['war', 'shortage', 'casualties'],
   #   ['thou', 'didst', 'hast']
   # ])
   plotter.plot_cohort_frequencies([
-    ['war', 'fight', 'gun',],
-    ['countryside', 'nature', 'field', ]
+    [u'me', u'gentl', u'my', u'i', u'claus', u'humor', u'taylor', u'delici', u'steepl', u'submiss', u'enterpris', u'bind', u'misde', u'grey', u'groan', u'lip', u'christian', u'succumb', u'steel', u'shackl', u'wideey'],
+    [u'she', u'her', u'herself', u'perfect', u'incap', u'convict', u'an', u'habit', u'gentleman', u'convent', u'refin', u'rather', u'afraid', u'prevent', u'reminisc', u'generos', u'inspir', u'much', u'pretend', u'to', u'present'],
+    [u'shell', u'young', u'that', u'societi', u'suppos', u'phase', u'prevent', u'genius', u'daughter', u'her', u'afraid', u'convent', u'delic', u'refin', u'rather', u'herself', u'attribut', u'she', u'comprehens', u'incap', u'admir'],
+    [u'delic', u'nevertheless', u'miseri', u'littl', u'fix', u'artifici', u'poor', u'afraid', u'that', u'piti', u'shell', u'made', u'generous', u'solemn', u'gentlemen', u'ought', u'better', u'devot', u'great', u'her', u'which'],
+    [u'lucki', u'top', u'back', u'on', u'behind', u'stop', u'crack', u'kick', u'pick', u'mess', u'neck', u'stomach', u'glass', u'four', u'watch', u'sound', u'start', u'around', u'off', u'nowher', u'mayb'],
+    [u'gentl', u'grey', u'submiss', u'humor', u'groan', u'flush', u'taylor', u'enterpris', u'christian', u'claus', u'delici', u'soft', u'lip', u'me', u'uncomfort', u'scold', u'steel', u'shyli', u'impass', u'inner', u'my']
   ])
 
 if __name__ == '__main__':
