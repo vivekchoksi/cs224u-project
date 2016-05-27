@@ -25,10 +25,15 @@ def tokenize_words(line):
   fmt_line = line.lower().replace('--', ' ').replace(',', ' ')
   fmt_line = fmt_line.translate(string.maketrans('', ''), string.punctuation)
 
-  # Stem words.
-  fmt_line = fmt_line.decode('utf-8')
-  #return [STEMMER.stem(w) for w in fmt_line.split()]
+  # Different files may be in different encodings.
+  try:
+    fmt_line = fmt_line.decode('utf-8')
+  except UnicodeDecodeError:
+    fmt_line = fmt_line.decode('iso-8859-1')
+
+  # Stem words before returning.
   return stem_words(fmt_line.split())
+
 
 def stem_words(words):
   """given list of word strings, return list of stemmed words
@@ -38,4 +43,3 @@ def stem_words(words):
 def fn_to_title(fpath):
   filename = fpath.split("/")[-1]
   return "".join(filename.split(",")[:-1])
-

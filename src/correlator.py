@@ -179,7 +179,7 @@ class WordCountsBookDataProcessor(BookDataProcessor):
 
 
 
-class Reader():
+class Reader(object):
   """Read data from the corpus by "era". 
 
   Eras could represent decades or any other grouping of documents in the
@@ -203,9 +203,15 @@ class Reader():
     for file in self._get_filenames(era):
       with open(file, 'r') as infile:
         for line in infile:
-          # Make lowercase, remove punctuation, and split into words.
-          for word in util.tokenize_words(line):
-            yield word
+          try:
+            # Make lowercase, remove punctuation, and split into words.
+            for word in util.tokenize_words(line):
+              yield word
+          except:
+            logging.error(
+              'Unable to read a line in the file: {}'.format(infile))
+            logging.error(line)
+            logging.error('Skipping...')
 
   def get_num_eras(self):
     # Hard-coded example.
@@ -222,16 +228,19 @@ class Reader():
 
     return [os.path.join(DATA_DIR, f) for f in filenames]
 
+class AbstractCorpusReader(Reader):
+  """Abstract class to read data from a corpus.
 
-class AmericanBestsellersReader(Reader):
-  """Read data from American Bestsellers list as provided by Project Gutenberg.
-  https://www.gutenberg.org/wiki/Bestsellers,_American,_1895-1923_(Bookshelf)
+  Contains logic for splitting year ranges into eras.
   """
-  START_YEAR = 1895
-  END_YEAR = 1923
+  START_YEAR = None
+  END_YEAR = None
+  CORPUS_SUBDIR = None
 
   def __init__(self, era_size=5):
-    """TODO: Comment
+    """
+    Args:
+      era_size (int): the number of years that constitute an era.
     """
     self.era_size = era_size
 
@@ -243,7 +252,7 @@ class AmericanBestsellersReader(Reader):
   def get_num_eras(self):
     return self.num_eras
 
-  def _get_filenames(self, era):
+  def _get_years_for_era(self, era):
     if era < 0 or era >= self.num_eras:
       raise ValueError('Invalid era.')
 
@@ -251,14 +260,113 @@ class AmericanBestsellersReader(Reader):
     end_era = min(self.START_YEAR + (era + 1) * self.era_size,
       self.END_YEAR + 1)
 
+    return range(start_era, end_era)
+
+  def _get_filenames(self, era):
+    pass
+
+class AmericanBestsellersReader(AbstractCorpusReader):
+  """Read data from American Bestsellers list as provided by Project Gutenberg.
+  https://www.gutenberg.org/wiki/Bestsellers,_American,_1895-1923_(Bookshelf)
+  """
+  START_YEAR = 1895
+  END_YEAR = 1923
+  CORPUS_SUBDIR = 'ebooks'
+
+  def __init__(self, era_size=5):
+    super(AmericanBestsellersReader, self).__init__(era_size)
+
+  def _get_filenames(self, era):
     filenames = []
-    corpus_dir = os.path.join(DATA_DIR, 'ebooks')
-    for year in range(start_era, end_era):
+    corpus_dir = os.path.join(DATA_DIR, self.CORPUS_SUBDIR)
+    for year in self._get_years_for_era(era):
       year_dir = os.path.join(corpus_dir, str(year))
       for filename in os.listdir(year_dir):
         filenames.append(os.path.join(year_dir, filename))
 
     return filenames
+
+
+class TwentiethCenturyReader(AbstractCorpusReader):
+  """Read data from the 20th Century American corpus as provided by the
+  Stanford Literary Lab and described in their eighth pamphlet.
+
+  http://litlab.stanford.edu/LiteraryLabPamphlet8.pdf
+  """
+  START_YEAR = 1881
+  END_YEAR = 2011
+  CORPUS_SUBDIR = '20thCenturyCorpus'
+
+  # Need to rename files that are not annotated with the book's publication
+  # year.
+  FILES_TO_RENAME = {
+    '1133JoyceNA.txt': '1133Joyce1941.txt',
+    '1171KeneallyNA.txt': '1171Keneally1982.txt',
+    '1201KeseyNA.txt': '1201Kesey1962.txt',
+    '1271LarssonNA.txt': '1271Larsson2007.txt',
+    '1281LawrenceNA.txt': '1281Lawrence1928.txt',
+    '156OBrian39.txt': '156OBrien1951.txt',
+    '1571OBrien53.txt': '1571OConnor1953.txt',
+    '1651PynchonNA.txt': '1651Pynchon1973.txt',
+    '1711RipleyNA.txt': '1711Ripley1991.txt',
+    '1751RothNA.txt': '1751Roth1969.txt',
+    '1761RushdieNA.txt': '1761Rushdie1981.txt',
+    '1911StyronNA.txt': '1911Styron1979.txt',
+    '1951TherouxNA.txt': '1951Theroux1981.txt',
+    '2021VonnegutNA.txt': '2021Vonnegut1963.txt',
+    '2071WarrenNA.txt': '2071Warren1946.txt',
+    '2141WhiteNA.txt': '2141White1952.txt',
+    '221BennettNA.txt': '221Bennett1908.txt',
+    '261BrinkleyNA.txt': '261Brinkley1956.txt',
+    '31AdamsNA.txt': '31Adams1979.txt',
+    '351CardNA.txt': '351Card1985.txt',
+    '612du MaurierNA.txt': 'Maurier1946.txt',
+    '761FordNA.txt': '761Ford1925.txt',
+    '781FowlesNA.txt': '781Fowles1969.txt',
+    '802GassNA.txt': '802Gass1966.txt',
+    '91AtwoodNA.txt': '91Atwood1985.txt',
+  }
+
+  def __init__(self, era_size=10):
+    super(TwentiethCenturyReader, self).__init__(era_size)
+
+  def _get_filenames(self, era):
+    # print 'Getting filenames for era', era
+    filenames = []
+    corpus_dir = os.path.join(DATA_DIR, self.CORPUS_SUBDIR)
+
+    # Get books in a particular year by looping through all filenames.
+    # Not efficient, but also not worth optimizing.
+    for year in self._get_years_for_era(era):
+      for filename in os.listdir(corpus_dir):
+        book_year = self._get_book_year(filename)
+        if year == book_year:
+          filenames.append(os.path.join(corpus_dir, filename))
+
+    return filenames
+
+  def _get_book_year(self, filename):
+    """Return the year from the filename of a txt file in the 20th Century
+    Corpus. The year occupies the last four characters of the file name.
+    """
+    if filename in self.FILES_TO_RENAME:
+      filename = self._rename_file(filename)
+
+    year = int(filename[-8:-4])
+
+    assert(year >= self.START_YEAR and year <= self.END_YEAR)
+    return year
+
+  def _rename_file(self, filename):
+    """Rename the file to include the book publication year, which some file
+    names are missing.
+    """
+    corpus_dir = os.path.join(DATA_DIR, self.CORPUS_SUBDIR)
+    old_name = os.path.join(corpus_dir, filename)
+    new_name = os.path.join(corpus_dir, self.FILES_TO_RENAME[filename])
+    os.rename(old_name, new_name)
+    logging.info('Renamed file \'{}\' to \'{}\''.format(old_name, new_name))
+    return new_name
 
 
 class Correlator():
@@ -425,13 +533,13 @@ class Correlator():
 
 def run_correlator():
   correlator = Correlator()
-  correlator.preprocess_counts(Reader())
+  correlator.preprocess_counts(TwentiethCenturyReader(), 'data/tcc.pickle')
   # correlator.preprocess_counts(AmericanBestsellersReader(), 'ab_counts.pickle')
   # correlator.load_counts('ab_counts.pickle')
   # correlator.preprocess_correlations(k=20, pickle_dump_file='ab_correlations.pickle')
   # correlator.load_correlations('ab_correlations.pickle')
-  # print 'Cohort for \'war\':', correlator.get_cohort('war')
-  # pdb.set_trace()
+  print 'Cohort for \'war\':', correlator.get_cohort('war')
+  pdb.set_trace()
 
 
 def run_wc_by_book():
@@ -445,12 +553,8 @@ def run_wc_by_book():
 def main():
   logging.basicConfig(format='[%(name)s %(asctime)s]\t%(msg)s',
     stream=sys.stderr, level=logging.DEBUG)
-  #run_correlator()
-  run_wc_by_book()
-
-
-
-
+  run_correlator()
+  # run_wc_by_book()
 
 if __name__ == '__main__':
   main()
