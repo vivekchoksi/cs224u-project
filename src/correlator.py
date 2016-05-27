@@ -583,11 +583,11 @@ class Correlator():
 
 def run_correlator():
   correlator = Correlator()
-  # correlator.preprocess_counts(TwentiethCenturyReader(), 'data/pickle/tcc_counts.pickle')
+  correlator.preprocess_counts(TwentiethCenturyReader(), 'tcc_counts.pickle')
   # correlator.preprocess_counts(AmericanBestsellersReader(), 'ab_counts.pickle')
-  correlator.load_counts('data/pickle/tcc_counts.pickle')
-  # correlator.preprocess_correlations(k=20, pickle_dump_file='data/pickle/tcc_correlations.pickle')
-  correlator.load_correlations('data/pickle/tcc_correlations.pickle')
+  # correlator.load_counts('data/pickle/tcc_counts.pickle')
+  correlator.preprocess_correlations(k=20, pickle_dump_file='tcc_correlations.pickle')
+  # correlator.load_correlations('data/pickle/tcc_correlations.pickle')
   # print 'Cohort for \'war\':', correlator.get_cohort('war')
   # pdb.set_trace()
   correlator.report_most_fluctuating_cohorts(correlator.fluctuation_between_halves)
