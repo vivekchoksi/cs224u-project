@@ -293,8 +293,13 @@ class TwentiethCenturyReader(AbstractCorpusReader):
 
   http://litlab.stanford.edu/LiteraryLabPamphlet8.pdf
   """
-  START_YEAR = 1881
-  END_YEAR = 2011
+  # The true start and end years.
+  TRUE_START_YEAR = 1881
+  TRUE_END_YEAR = 2011
+
+  # The start and end years to study.
+  START_YEAR = 1900
+  END_YEAR = 1999
   CORPUS_SUBDIR = '20thCenturyCorpus'
 
   # Need to rename files that are not annotated with the book's publication
@@ -354,7 +359,7 @@ class TwentiethCenturyReader(AbstractCorpusReader):
 
     year = int(filename[-8:-4])
 
-    assert(year >= self.START_YEAR and year <= self.END_YEAR)
+    assert(year >= self.TRUE_START_YEAR and year <= self.TRUE_END_YEAR)
     return year
 
   def _rename_file(self, filename):
@@ -441,33 +446,44 @@ class Correlator():
       # Compute the cohort now.
       return self._correlate_word(word, k)
 
-  def report_most_fluctuating_cohorts(
-    self, fluctuation_fn=None):
+  def get_most_fluctuating_cohorts(
+    self, fluctuation_fn=None, k=20):
     """Reports the cohorts for which the frequencies fluctuated most, given
     some input function to measure fluctuation.
 
     Args:
       fluctuation_fn: a function to report a fluctuation score given an array
         representing frequency counts of a semantic cohort.
-
+      k (int): the number of most highly fluctuating cohorts to report.
     """
-    if fluctuation_fn is None:
-      fluctuation_fn = Correlator.elementwise_fluctuation
     logging.info('Computing highest fluctuating cohorts...')
+
+    # Default fluctuation function.
+    if fluctuation_fn is None:
+      fluctuation_fn = self.elementwise_fluctuation
+
     fluctuations = {}
     for word in self.correlations:
+      # Get sum of frequencies for all words in cohort.
       sum_counts = np.copy(self.counts[word])
       for other_word, _ in self.get_cohort(word):
         if other_word is not word:
           sum_counts += self.counts[other_word]
+
+      # Compute a single fluctuation score for the word's cohort.
       fluctuations[word] = fluctuation_fn(sum_counts)
+
+    # Sort to get the most fluctuating cohorts
     fluctuations = sorted(
       fluctuations.items(), key=operator.itemgetter(1), reverse=True)
 
+    # Print the top several most fluctuating cohorts.
     print 'Cohorts that see the most fluctuation in frequency:'
-    for word, _ in fluctuations[:20]:
+    for word, _ in fluctuations[:k]:
       cohort_words = [w for w, _ in self.get_cohort(word)]
       print '...', word, ':', cohort_words
+
+    return fluctuations[:k]
 
   def elementwise_fluctuation(self, array):
     fluctuation = 0.0
@@ -583,15 +599,12 @@ class Correlator():
 
 def run_correlator():
   correlator = Correlator()
-  correlator.preprocess_counts(TwentiethCenturyReader(), 'tcc_counts.pickle')
-  # correlator.preprocess_counts(AmericanBestsellersReader(), 'ab_counts.pickle')
-  # correlator.load_counts('data/pickle/tcc_counts.pickle')
-  correlator.preprocess_correlations(k=20, pickle_dump_file='tcc_correlations.pickle')
-  # correlator.load_correlations('data/pickle/tcc_correlations.pickle')
-  # print 'Cohort for \'war\':', correlator.get_cohort('war')
-  # pdb.set_trace()
-  correlator.report_most_fluctuating_cohorts(correlator.fluctuation_between_halves)
-
+  # correlator.preprocess_counts(TwentiethCenturyReader(), 'data/pickle/tcc_counts_1900-1999.pickle')
+  # correlator.preprocess_correlations(k=20, pickle_dump_file='data/pickle/tcc_correlations_1900-1999.pickle')
+  correlator.load_counts('data/pickle/tcc_counts_1900-1999.pickle')
+  correlator.load_correlations('data/pickle/tcc_correlations_1900-1999.pickle')
+  correlator.get_most_fluctuating_cohorts(correlator.fluctuation_between_halves)
+ 
 def run_wc_by_book():
   wcp = WordCountsBookDataProcessor(WordCountsBookReader())
   wcp.preprocess_word_counts("wc_by_book.pickle")

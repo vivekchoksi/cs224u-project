@@ -12,6 +12,7 @@ import matplotlib.cm as cm
 import numpy as np
 
 import util
+from correlator import Correlator
 
 
 class Plotter():
@@ -30,13 +31,32 @@ class Plotter():
       frequency by era.
   """
 
-  def __init__(self, counts=None):
+  def __init__(self, counts=None, correlator=None):
     self.counts = counts
+    self.correlator = correlator
+    if correlator is not None:
+      self.counts = correlator.counts
 
   def load_counts(self, pickle_load_file):
     self.counts = util.pickle_load(pickle_load_file)
 
-  def plot_cohort_frequencies(self, word_groups, stem=False):
+  def plot_cohort_frequencies(self, seeds, stem=False):
+    if self.correlator is None:
+      self.correlator = Correlator()
+      self.correlator.counts = self.counts
+
+    if stem:
+      seeds = util.stem_words(seeds)
+
+    word_groups = []
+    for w in seeds:
+      word_groups.append(
+        [cohort_word for cohort_word, _ in self.correlator.get_cohort(w)])
+
+    self.plot_word_group_frequencies(word_groups)
+
+
+  def plot_word_group_frequencies(self, word_groups, stem=False):
     """Plot frequencies of word groups by era.
 
     Args:
@@ -44,14 +64,17 @@ class Plotter():
       stem (bool): whether to stem the input words.
 
     Usage:
-      plotter.plot_cohort_frequencies([
+      plotter.plot_word_group_frequencies([
         ['war', 'shortage', 'casualties'],
         ['thou', 'didst', 'hast']
       ])
     """
+    print 'Word groups...'
     for word_group in word_groups:
       if stem:
         word_group = util.stem_words(word_group)
+
+      print '\t', word_group
 
       # Sum frequencies of all words in the group.
       for i in range(len(word_group)):
@@ -105,24 +128,25 @@ class BookWcPlotter(Plotter):
     plt.legend()
     plt.show()
 
+def make_frequency_plots_by_era():
+  c = Correlator()
+  c.load_counts('data/pickle/tcc_counts_1900-1999.pickle')
+  c.load_correlations('data/pickle/tcc_correlations_1900-1999.pickle')
+  plotter = Plotter(correlator=c)
+
+  fluctuation_fn = c.upward_fluctuation
+  cohorts = [w for w, _ in c.get_most_fluctuating_cohorts(fluctuation_fn)[:5]]
+  plotter.plot_cohort_frequencies(cohorts)
+
+  fluctuation_fn = c.downward_fluctuation
+  cohorts = [w for w, _ in c.get_most_fluctuating_cohorts(fluctuation_fn)[:5]]
+  plotter.plot_cohort_frequencies(cohorts)
+
 
 def main():
   logging.basicConfig(format='[%(name)s %(asctime)s]\t%(msg)s',
     stream=sys.stderr, level=logging.DEBUG)
-  plotter = Plotter()
-  plotter.load_counts('data/pickle/tcc_counts.pickle')
-  # plotter.plot_cohort_frequencies([
-  #   ['war', 'shortage', 'casualties'],
-  #   ['thou', 'didst', 'hast']
-  # ])
-  plotter.plot_cohort_frequencies([
-    [u'me', u'gentl', u'my', u'i', u'claus', u'humor', u'taylor', u'delici', u'steepl', u'submiss', u'enterpris', u'bind', u'misde', u'grey', u'groan', u'lip', u'christian', u'succumb', u'steel', u'shackl', u'wideey'],
-    [u'she', u'her', u'herself', u'perfect', u'incap', u'convict', u'an', u'habit', u'gentleman', u'convent', u'refin', u'rather', u'afraid', u'prevent', u'reminisc', u'generos', u'inspir', u'much', u'pretend', u'to', u'present'],
-    [u'shell', u'young', u'that', u'societi', u'suppos', u'phase', u'prevent', u'genius', u'daughter', u'her', u'afraid', u'convent', u'delic', u'refin', u'rather', u'herself', u'attribut', u'she', u'comprehens', u'incap', u'admir'],
-    [u'delic', u'nevertheless', u'miseri', u'littl', u'fix', u'artifici', u'poor', u'afraid', u'that', u'piti', u'shell', u'made', u'generous', u'solemn', u'gentlemen', u'ought', u'better', u'devot', u'great', u'her', u'which'],
-    [u'lucki', u'top', u'back', u'on', u'behind', u'stop', u'crack', u'kick', u'pick', u'mess', u'neck', u'stomach', u'glass', u'four', u'watch', u'sound', u'start', u'around', u'off', u'nowher', u'mayb'],
-    [u'gentl', u'grey', u'submiss', u'humor', u'groan', u'flush', u'taylor', u'enterpris', u'christian', u'claus', u'delici', u'soft', u'lip', u'me', u'uncomfort', u'scold', u'steel', u'shyli', u'impass', u'inner', u'my']
-  ])
+  make_frequency_plots_by_era()
 
 if __name__ == '__main__':
   main()
