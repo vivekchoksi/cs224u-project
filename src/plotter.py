@@ -50,7 +50,7 @@ class Plotter():
 
     word_groups = []
     for w in seeds:
-      word_groups.append(
+      word_groups.append([w] +
         [cohort_word for cohort_word, _ in self.correlator.get_cohort(w)])
 
     self.plot_word_group_frequencies(word_groups)
