@@ -20,25 +20,43 @@ CORPUS_DIR = os.path.join(os.path.dirname(__file__), '../data/20thCenturyCorpus/
 FEATURES_DIR = os.path.join(os.path.dirname(__file__), '../data/features/')
 
 class FeaturizerManager(object):
-  def __init__(self, featurizers_list=None):
-    if featurizers_list is None:
-      featurizers_list = [
-        # MalePronounFeaturizer(),
-        # FemalePronounFeaturizer(),
-        # MaleFemalePronounRatioFeaturizer(),
-        # TypeTokenRatioFeaturizer(),
-        # WordCountFeaturizer(),
-        # VocabSizeFeaturizer(),
+
+  # Enumeration of parts of speech:
+  # https://cs.nyu.edu/grishman/jet/guide/PennPOS.html
+  POS_CATEGORIES = {
+    'nouns': ['NN', 'NNS'],
+    'verbs': ['VBZ', 'VBD'],
+    'adjectives': ['JJ', 'JJR', 'JJS'],
+    'adverbs': ['RB', 'RBR', 'RBS'],
+    'all': ['CC', 'CD', 'DT', 'EX', 'FW', 'IN', 'JJ', 'JJR', 'JJS', 'LS', \
+      'MD', 'NN', 'NNS', 'NNP', 'NNPS', 'PDT', 'POS', 'PRP', 'PRP$', 'RB', \
+      'RBR', 'RBS', 'RP', 'SYM', 'TO', 'UH', 'VB', 'VBD', 'VBG', 'VBN', \
+      'VBP', 'VBZ', 'WDT', 'WP', 'WP$', 'WRB'],
+  }
+
+  def __init__(self, featurizer_list=None):
+    if featurizer_list is None:
+      featurizer_list = [
+        MalePronounFeaturizer(),
+        FemalePronounFeaturizer(),
+        MaleFemalePronounRatioFeaturizer(),
+        FemaleMalePronounRatioFeaturizer(),
+        TypeTokenRatioFeaturizer(),
+        WordCountFeaturizer(),
+        VocabSizeFeaturizer(),
         PartOfSpeechFeaturizer()
       ]
-    self.featurizers_list = featurizers_list
+    self.featurizer_list = featurizer_list
     self.tagger = PerceptronTagger()
+    self.sentence_tokenizer = nltk.data.load('tokenizers/punkt/english.pickle')
 
-    self.featurizers_map = {}
-    for f in featurizers_list:
-      self.featurizers_map[f.get_feature_name()] = f
+    self.featurizer_map = {}
+    for f in featurizer_list:
+      self.featurizer_map[f.get_feature_name()] = f
 
-  def run_featurizers(self):
+  def run_featurizers(self, featurizer_list=None):
+    if featurizer_list is None:
+      featurizer_list = self.featurizer_list
     filenames = self.get_corpus_filenames()
     for i, filename in enumerate(filenames):
       logging.info('Reading book {} / {}: {}'.format(i+1, len(filenames), filename))
@@ -50,21 +68,39 @@ class FeaturizerManager(object):
           kwargs = {
             'lower_split': lower_split_tokens,
             'tags': self._get_pos_counter(lower_split_tokens),
+            'sentences': self.sentence_tokenizer(line),
           }
-          for featurizer in self.featurizers_list:
+          for featurizer in self.featurizer_list:
             featurizer.process(line, book_id, **kwargs)
 
-    for featurizer in self.featurizers_list:
+    for featurizer in self.featurizer_list:
       featurizer.dump()
 
-  def get_characteristic(self, feature_name, book_id):
-    return self.featurizers_map[feature_name].get_value(book_id)
+  def get_feature_value_by_name(self, feature_name, book_id, book_year=None):
+    # Special case to deal with ratio features.
+    if len(feature_name.split()) == 3:
+      feature1, feature2, ratio_word = feature_name.split()
+      assert(ratio_word == 'ratio')
+      feature_value1 = self.get_feature_value_by_name(feature1, book_id, book_year)
+      feature_value2 = self.get_feature_value_by_name(feature2, book_id, book_year)
+      return float(feature_value1) / feature_value2
+    if feature_name is 'year':
+      return book_year
+    elif feature_name in self.POS_CATEGORIES:
+      return self.get_part_of_speech_count(self.POS_CATEGORIES[feature_name], book_id)
+    else:
+      return self.featurizer_map[feature_name].get_value(book_id)
 
   def get_part_of_speech_count(self, pos_list, book_id):
-    return self.featurizers_map['pos_all'].get_value(pos_list, book_id)
+    return self.featurizer_map['pos_all'].get_value(pos_list, book_id)
 
   def get_book_ids(self):
     return [util.filename_to_book_id(filename) for filename in self.get_corpus_filenames()]
+
+  def get_book_year_and_ids(self):
+    # TODO: Replace with getting year from csv once that is implemented.
+    return [(util.filename_to_book_year(filename), util.filename_to_book_id(filename)) \
+      for filename in self.get_corpus_filenames()]
 
   def get_corpus_filenames(self):
     return os.listdir(CORPUS_DIR)
@@ -114,6 +150,24 @@ class MaleFemalePronounRatioFeaturizer(AbstractFeaturizer):
     male_pronouns = self.male_pronoun_featurizer.get_value(book_id)
     female_pronouns = self.female_pronoun_featurizer.get_value(book_id)
     return float(male_pronouns) / female_pronouns
+
+  def dump(self):
+    pass
+
+class FemaleMalePronounRatioFeaturizer(AbstractFeaturizer):
+
+  def __init__(self):
+    super(FemaleMalePronounRatioFeaturizer, self).__init__()
+    self.male_pronoun_featurizer = MalePronounFeaturizer()
+    self.female_pronoun_featurizer = FemalePronounFeaturizer()
+
+  def get_feature_name(self):
+    return 'female_male_pronoun_ratio'
+
+  def get_value(self, book_id):
+    male_pronouns = self.male_pronoun_featurizer.get_value(book_id)
+    female_pronouns = self.female_pronoun_featurizer.get_value(book_id)
+    return float(female_pronouns) / male_pronouns
 
   def dump(self):
     pass
@@ -261,17 +315,28 @@ class PartOfSpeechFeaturizer(AbstractFeaturizer):
       sum_count += self.feature_dict[book_id][pos]
     return sum_count
 
+# TODO: Implement this.
+class MedianSentenceLengthFeaturizer(AbstractFeaturizer):
 
-def run_featurizer():
+  def __init__(self):
+    super(WordCountFeaturizer, self).__init__()
+    self.feature_value = defaultdict(lambda: 0)
+
+  def get_feature_name(self):
+    return 'sentence_length'
+
+  def process(self, line, book_id, **kwargs):
+    raise NotImplementedError
+
+def run_featurizers():
   featurizer_manager = FeaturizerManager()
   featurizer_manager.run_featurizers()
   # pdb.set_trace()
-  # featurizer_manager.get_characteristic('male_pronouns', '21')
 
 def main():
   logging.basicConfig(format='[%(name)s %(asctime)s]\t%(msg)s',
     stream=sys.stderr, level=logging.DEBUG)
-  run_featurizer()
+  run_featurizers()
 
 if __name__ == '__main__':
   main()

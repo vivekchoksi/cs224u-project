@@ -47,6 +47,12 @@ def fn_to_title(fpath):
   filename = fpath.split("/")[-1]
   return "".join(filename.split(",")[:-1])
 
+def filename_to_book_year(filename):
+  """Assumes that book filenames are formatted such that each filename ends
+  with a four-digit year.
+  """
+  return int(filename[-8:-4])
+
 def filename_to_book_id(filename):
   """Return the first characters of the book that constitute numbers.
   """
