@@ -10,6 +10,7 @@ import sys
 import pdb
 import cPickle as pickle
 from collections import defaultdict, Counter
+import numpy as np
 import nltk
 import nltk.data, nltk.tag
 from nltk.tag.perceptron import PerceptronTagger
@@ -44,7 +45,8 @@ class FeaturizerManager(object):
         TypeTokenRatioFeaturizer(),
         WordCountFeaturizer(),
         VocabSizeFeaturizer(),
-        PartOfSpeechFeaturizer()
+        PartOfSpeechFeaturizer(),
+        MedianSentenceLengthFeaturizer(),
       ]
     self.featurizer_list = featurizer_list
     self.tagger = PerceptronTagger()
@@ -68,12 +70,13 @@ class FeaturizerManager(object):
           kwargs = {
             'lower_split': lower_split_tokens,
             'tags': self._get_pos_counter(lower_split_tokens),
-            'sentences': self.sentence_tokenizer(line),
+            'sentences': self.sentence_tokenizer.tokenize(util.decode_line(line)),
           }
           for featurizer in self.featurizer_list:
             featurizer.process(line, book_id, **kwargs)
 
     for featurizer in self.featurizer_list:
+      featurizer.finish()
       featurizer.dump()
 
   def get_feature_value_by_name(self, feature_name, book_id, book_year=None):
@@ -123,6 +126,9 @@ class AbstractFeaturizer(object):
     return None
 
   def process(self, line, book_id, **kwargs):
+    pass
+
+  def finish(self):
     pass
 
   def dump(self):
@@ -315,23 +321,39 @@ class PartOfSpeechFeaturizer(AbstractFeaturizer):
       sum_count += self.feature_dict[book_id][pos]
     return sum_count
 
-# TODO: Implement this.
+# TODO: Fix this. Needs to ignore "sentences" consisting just of newlines;
+# Needs to get sentence length as number of words.
 class MedianSentenceLengthFeaturizer(AbstractFeaturizer):
 
   def __init__(self):
-    super(WordCountFeaturizer, self).__init__()
+    super(MedianSentenceLengthFeaturizer, self).__init__()
+    self.sentence_lengths = defaultdict(lambda: [])
     self.feature_value = defaultdict(lambda: 0)
 
   def get_feature_name(self):
     return 'sentence_length'
 
   def process(self, line, book_id, **kwargs):
-    raise NotImplementedError
+    if 'sentences' in kwargs.keys():
+      print kwargs['sentences']
+      for sentence in kwargs['sentences']:
+        # print sentence
+        self.sentence_lengths[book_id].append(len(sentence))
+
+  def finish(self):
+    for book_id in self.sentence_lengths:
+      median_length = np.median(np.array(self.sentence_lengths))
+      self.feature_value[book_id] = median_length
 
 def run_featurizers():
   featurizer_manager = FeaturizerManager()
   featurizer_manager.run_featurizers()
+  # featurizer_list = [
+  #   MedianSentenceLengthFeaturizer()
+  # ]
+  # featurizer_manager.run_featurizers(featurizer_list=featurizer_list)
   # pdb.set_trace()
+
 
 def main():
   logging.basicConfig(format='[%(name)s %(asctime)s]\t%(msg)s',

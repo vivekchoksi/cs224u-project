@@ -37,6 +37,12 @@ def tokenize_words(line, stem=True):
   else:
     return fmt_line.split()
 
+def decode_line(line):
+  try:
+    line = line.decode('utf-8')
+  except UnicodeDecodeError:
+    line = line.decode('iso-8859-1')
+  return line
 
 def stem_words(words):
   """given list of word strings, return list of stemmed words
