@@ -29,8 +29,6 @@ def xlsx_to_csv(xlsx_filepath, csv_filepath):
 	csv_file = open(csv_filepath, 'wb')
 	wr = csv.writer(csv_file, quoting=csv.QUOTE_ALL)
 	for rownum in xrange(sh.nrows):
-
-		#print "rownum: ", rownum, sh.row_values(rownum)
 		wr.writerow(sh.row_values(rownum))
 
 	csv_file.close()
@@ -51,18 +49,15 @@ def get_filepath(book_id):
 	print "%s -> filepath match not found" % (book_id)
 
 
-
-
-
 def create_book_tags(filepath):
 
 	corpus_dir = os.path.join(DATA_DIR, CORPUS_SUBDIR)
 
 	book_metadata = {}
-	id_set = set()
+	#id_set = set()
 	count = 0
 	matches = 0
-	all_filenames = set([os.path.join(corpus_dir, filename) for filename in os.listdir(corpus_dir)])
+	#all_filenames = set([os.path.join(corpus_dir, filename) for filename in os.listdir(corpus_dir)])
 
 	with open(filepath, 'rb') as f:
 		reader = csv.reader(f)
@@ -172,10 +167,10 @@ def create_book_tags(filepath):
 			if not found_match: 
 				print "Couldn't find match for: ",  title
 
-	found_filenames = set(book_metadata[book_id]['filepath'] for book_id in book_metadata)
-	print all_filenames - found_filenames
+	#found_filenames = set(book_metadata[book_id]['filepath'] for book_id in book_metadata)
+	#print all_filenames - found_filenames
 
-	print count, matches
+	#print count, matches
 
 
 
@@ -183,7 +178,7 @@ def create_book_tags(filepath):
 	return book_metadata
 
 
-xlsx_to_csv(os.path.join(DATA_DIR, 'book_metadata.xlsx'), os.path.join(DATA_DIR, 'book_metadata.csv'))
+#xlsx_to_csv(os.path.join(DATA_DIR, 'book_metadata.xlsx'), os.path.join(DATA_DIR, 'book_metadata.csv'))
 book_metadata = create_book_tags(os.path.join(DATA_DIR, 'book_metadata.csv'))
 # print len(book_metadata)
 
@@ -193,7 +188,7 @@ book_metadata = create_book_tags(os.path.join(DATA_DIR, 'book_metadata.csv'))
 # 		print "key \"filepath\" not found"
 # 	print '\n'
 
-util.pickle_dump(book_metadata, 'data/pickle/book_metadata.pickle')
+# util.pickle_dump(book_metadata, 'data/pickle/book_metadata.pickle')
 
 
 

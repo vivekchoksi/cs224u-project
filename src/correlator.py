@@ -228,6 +228,41 @@ class Reader(object):
 
     return [os.path.join(DATA_DIR, f) for f in filenames]
 
+
+class TccListReader(Reader):
+  """
+  Divides Twentieth Century Corpus into eras by list
+  """
+
+  I_TO_LIST_NAME = [
+    'ml_editors_rank',
+    'ml_readers_rank',
+    'pub_prog_rank',
+    'exp_rank',
+    'bestsellers_rank',
+  ]
+
+  def __init__(self):
+    book_metadata = util.pickle_load(os.path.join(DATA_DIR, "pickle/book_metadata.pickle"))
+    book_lists = [ [] for i in range(5) ] #5 lists; hardcoded
+
+    for book_id in book_metadata:
+      metadata = book_metadata[book_id]
+
+      for i in range(5):
+        # if book has (non zero) rank on list
+        if metadata[self.I_TO_LIST_NAME[i]] != 0:
+          book_lists[i].append(metadata['filepath'])
+
+    self.book_lists = book_lists
+
+  def get_num_eras(self):
+    return len(self.book_lists)
+
+  def _get_filenames(self, era):
+    return self.book_lists[era]
+
+
 class AbstractCorpusReader(Reader):
   """Abstract class to read data from a corpus.
 
@@ -601,8 +636,10 @@ def run_correlator():
   correlator = Correlator()
   # correlator.preprocess_counts(TwentiethCenturyReader(), 'data/pickle/tcc_counts_1900-1999.pickle')
   # correlator.preprocess_correlations(k=20, pickle_dump_file='data/pickle/tcc_correlations_1900-1999.pickle')
-  correlator.load_counts('data/pickle/tcc_counts_1900-1999.pickle')
-  correlator.load_correlations('data/pickle/tcc_correlations_1900-1999.pickle')
+  # correlator.load_counts('data/pickle/tcc_counts_1900-1999.pickle')
+  # correlator.load_correlations('data/pickle/tcc_correlations_1900-1999.pickle')
+  correlator.preprocess_counts(TccListReader(), 'data/pickle/tcc_counts_by_list.pickle')
+  correlator.preprocess_correlations(k=20, pickle_dump_file='data/pickle/tcc_correlations_by_list.pickle')
   correlator.get_most_fluctuating_cohorts(correlator.fluctuation_between_halves)
  
 def run_wc_by_book():
@@ -611,6 +648,16 @@ def run_wc_by_book():
   #wcp.load_word_counts("wc_by_book.pickle")
   print wcp.get_data_single_book("Beside the Bonnie Brier Bush", ['brier'])
 
+def test_tcc_list_reader():
+  reader = TccListReader()
+  for era in range(reader.get_num_eras()):
+    print "Era: %d" % era
+    fp_set = set()
+    filepaths = reader._get_filenames(era)
+    for fp in filepaths:
+      print fp
+      fp_set.add(fp)
+    print "era %d's total FPs: %d" % (era, len(fp_set))
 
 
 def main():
@@ -618,6 +665,7 @@ def main():
     stream=sys.stderr, level=logging.DEBUG)
   run_correlator()
   # run_wc_by_book()
+  # test_tcc_list_reader()
 
 if __name__ == '__main__':
   main()
