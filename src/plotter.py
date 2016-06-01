@@ -129,6 +129,26 @@ class BookWcPlotter(Plotter):
     plt.legend()
     plt.show()
 
+# TODO: Test this...
+def plot_pos_features(x_feature, y_feature):
+  fm = FeaturizerManager()
+  x = []
+  y = []
+  for book_id in fm.get_book_ids():
+    try:
+      x.append(fm.get_part_of_speech_count(['NN', ['NNS']], book_id))
+    except:
+      x.append(0)
+    try:
+      y.append(fm.get_part_of_speech_count(['VBZ', ['VBD']], book_id))
+    except:
+      y.append(0)
+
+  plt.scatter(x, y)
+  plt.xlabel(x_feature)
+  plt.ylabel(y_feature)
+  plt.show()
+
 
 def plot_features_by_name(x_feature, y_feature):
   fm = FeaturizerManager()

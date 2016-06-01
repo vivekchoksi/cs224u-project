@@ -18,7 +18,7 @@ def pickle_dump(data, pickle_filename):
   logging.info('Dumping to pickle file: \'{}\'...'.format(pickle_filename))
   pickle.dump(data, open(pickle_filename, 'wb'))
 
-def tokenize_words(line):
+def tokenize_words(line, stem=True):
   """Stem and tokenize the words in a line of raw text.
   """
   # Lower case and remove punctuation.
@@ -32,7 +32,10 @@ def tokenize_words(line):
     fmt_line = fmt_line.decode('iso-8859-1')
 
   # Stem words before returning.
-  return stem_words(fmt_line.split())
+  if stem:
+    return stem_words(fmt_line.split())
+  else:
+    return fmt_line.split()
 
 
 def stem_words(words):
