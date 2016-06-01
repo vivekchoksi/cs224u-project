@@ -325,7 +325,7 @@ class TwentiethCenturyReader(AbstractCorpusReader):
     '261BrinkleyNA.txt': '261Brinkley1956.txt',
     '31AdamsNA.txt': '31Adams1979.txt',
     '351CardNA.txt': '351Card1985.txt',
-    '612du MaurierNA.txt': 'Maurier1946.txt',
+    '612du MaurierNA.txt': '612du Maurier1946.txt',
     '761FordNA.txt': '761Ford1925.txt',
     '781FowlesNA.txt': '781Fowles1969.txt',
     '802GassNA.txt': '802Gass1966.txt',

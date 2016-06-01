@@ -13,6 +13,7 @@ import numpy as np
 
 import util
 from correlator import Correlator
+from featurizer import FeaturizerManager
 
 
 class Plotter():
@@ -128,6 +129,29 @@ class BookWcPlotter(Plotter):
     plt.legend()
     plt.show()
 
+
+def plot_features_by_name(x_feature, y_feature):
+  fm = FeaturizerManager()
+  x = []
+  y = []
+  for book_id in fm.get_book_ids():
+    try:
+      x.append(fm.get_characteristic(x_feature, book_id))
+    except:
+      x.append(0)
+    try:
+      y.append(fm.get_characteristic(y_feature, book_id))
+    except:
+      y.append(0)
+
+  plt.scatter(x, y)
+  plt.xlabel(x_feature)
+  plt.ylabel(y_feature)
+  plt.show()
+
+def plot_features():
+  plot_features_by_name('male_pronouns', 'female_pronouns')
+
 def make_frequency_plots_by_era():
   c = Correlator()
   c.load_counts('data/pickle/tcc_counts_1900-1999.pickle')
@@ -146,7 +170,8 @@ def make_frequency_plots_by_era():
 def main():
   logging.basicConfig(format='[%(name)s %(asctime)s]\t%(msg)s',
     stream=sys.stderr, level=logging.DEBUG)
-  make_frequency_plots_by_era()
+  # make_frequency_plots_by_era()
+  plot_features()
 
 if __name__ == '__main__':
   main()

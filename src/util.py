@@ -43,3 +43,20 @@ def stem_words(words):
 def fn_to_title(fpath):
   filename = fpath.split("/")[-1]
   return "".join(filename.split(",")[:-1])
+
+def filename_to_book_id(filename):
+  """Return the first characters of the book that constitute numbers.
+  """
+  book_id = ''
+  for char in filename:
+    if is_number(char):
+      book_id += char
+    else:
+      return book_id
+
+def is_number(char):
+  try:
+    float(char)
+    return True
+  except ValueError:
+    return False
