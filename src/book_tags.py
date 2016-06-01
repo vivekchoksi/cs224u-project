@@ -7,16 +7,8 @@ mapping book_id to a dict of key:value pairs
 """
 
 import os
-# import operator
-# import numpy as np
-# import logging
-# import sys
 import string
-# import pdb
 import cPickle as pickle
-# from collections import defaultdict
-# from collections import Counter
-# from scipy.stats.stats import pearsonr
 import xlrd
 import csv
 import editdistance
@@ -43,13 +35,34 @@ def xlsx_to_csv(xlsx_filepath, csv_filepath):
 
 	csv_file.close()
 
+def get_filepath(book_id):
+	corpus_dir = os.path.join(DATA_DIR, CORPUS_SUBDIR)
+	for filename in os.listdir(corpus_dir):
+		filepath = os.path.join(corpus_dir, filename)
+
+		match = re.match(r"([0-9]+)([a-z]+)([0-9]+)", filename.lower().replace(" ",""), re.I)
+		if match:
+			items = match.groups()
+			curr_book_id = items[0]
+
+			if curr_book_id == book_id:
+				return filepath
+
+	print "%s -> filepath match not found" % (book_id)
+
+
+
+
+
 def create_book_tags(filepath):
 
 	corpus_dir = os.path.join(DATA_DIR, CORPUS_SUBDIR)
 
 	book_metadata = {}
+	id_set = set()
 	count = 0
 	matches = 0
+	all_filenames = set([os.path.join(corpus_dir, filename) for filename in os.listdir(corpus_dir)])
 
 	with open(filepath, 'rb') as f:
 		reader = csv.reader(f)
@@ -83,43 +96,48 @@ def create_book_tags(filepath):
 			key = (last_name, year)
 
 			# hard coded key collision cases
-			if key == ('heinlein', 1957):
-				if title == 'citizen of the galaxy':
-					book_metadata["941"] = values
-					matches += 1
-					continue
-
+			if key[0] == 'heinlein':
 				if title == 'the door into summer':
+					values['filepath'] = get_filepath("945")
 					book_metadata["945"] = values
 					matches += 1
+					book_id = "945"
+					if book_id in id_set:
+						print "Dup id: ", book_id
+					else:
+						id_set.add(book_id)
 					continue
 
-			if key == ('lint', 1984):
-				book_metadata["503"] = values
-				matches += 1
-				continue
-
-			if key == ('lint', 1988):
-				book_metadata["501"] = values
-				matches += 1
-				continue
-
-
+				if title == 'double star':
+					values['filepath'] = get_filepath("942")
+					book_metadata["942"] = values
+					matches += 1
+					book_id = "942"
+					if book_id in id_set:
+						print "Dup id: ", book_id
+					else:
+						id_set.add(book_id)
+					continue
 
 			# search for matching (last name, year) key
 			for filename in os.listdir(corpus_dir):
 				curr_key = None
 
-				match = re.match(r"([0-9]+)([a-z]+)([0-9]+)", filename.lower(), re.I)
+				match = re.match(r"([0-9]+)([a-z]+)([0-9]+)", filename.lower().replace(" ",""), re.I)
 				if match:
 					items = match.groups()
 					curr_key = (items[1], int(items[2]))
 					book_id = items[0]
 
 				if curr_key == key:
+					values['filepath'] = get_filepath(book_id)
 					book_metadata[book_id] = values
 					found_match = True
 					matches += 1
+					if book_id in id_set:
+						print "Dup id from key: ", book_id, title
+					else:
+						id_set.add(book_id)
 					break
 
 			if found_match:
@@ -133,32 +151,47 @@ def create_book_tags(filepath):
 						curr_title = text.readline().lower().strip()
 						edit_dist = int(editdistance.eval(curr_title, title))
 						if edit_dist < int(float(len(title)) / 10) or edit_dist == 0:
-							match = re.match(r"([0-9]+)([a-z]+)([0-9]+)", filename.lower(), re.I)
+							match = re.match(r"([0-9]+)([a-z]+)([0-9]+)", filename.lower().replace(" ", ""), re.I)
 							if match:
 								items = match.groups()
 								curr_key = (items[1], int(items[2]))
 								book_id = items[0]
-							matches += 1
-							found_match = True
-							book_metadata[book_id] = values
-							continue
+								matches += 1
+								found_match = True
+								values['filepath'] = get_filepath(book_id)
+								if book_id in id_set:
+									print "Dup id from line matching: ", book_id, title
+								else:
+									id_set.add(book_id)
+
+								book_metadata[book_id] = values
+								continue
 					if found_match:
 						break
 
 			if not found_match: 
 				print "Couldn't find match for: ",  title
 
-	#print count, matches
+	found_filenames = set(book_metadata[book_id]['filepath'] for book_id in book_metadata)
+	print all_filenames - found_filenames
+
+	print count, matches
+
+
+
+
 	return book_metadata
 
 
-# xlsx_to_csv(os.path.join(DATA_DIR, 'book_metadata.xlsx'), os.path.join(DATA_DIR, 'book_metadata.csv'))
+xlsx_to_csv(os.path.join(DATA_DIR, 'book_metadata.xlsx'), os.path.join(DATA_DIR, 'book_metadata.csv'))
 book_metadata = create_book_tags(os.path.join(DATA_DIR, 'book_metadata.csv'))
+# print len(book_metadata)
+
 # for book_id in book_metadata:
 # 	print book_id
-# 	print book_metadata[book_id]['title']
-# 	print book_metadata[book_id]['author']
-# 	print "\n"
+# 	if 'filepath' not in book_metadata[book_id]:
+# 		print "key \"filepath\" not found"
+# 	print '\n'
 
 util.pickle_dump(book_metadata, 'data/pickle/book_metadata.pickle')
 
