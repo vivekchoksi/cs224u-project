@@ -10,10 +10,13 @@ import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import numpy as np
+import os
 
 import util
 from correlator import Correlator
 from featurizer import FeaturizerManager
+
+PLOTS_DIR = os.path.join(os.path.dirname(__file__), '../plots/')
 
 
 class Plotter():
@@ -134,28 +137,8 @@ def get_feature_value(featurizer_manager, feature_name, book_id, book_year):
     return book_year
 
 
-
-def plot_pos_features(x_feature, y_feature):
-  fm = FeaturizerManager()
-  x = []
-  y = []
-  for book_year, book_id in fm.get_book_year_and_ids():
-    try:
-      x.append(fm.get_part_of_speech_count(['NN', 'NNS'], book_id))
-    except:
-      x.append(0)
-    try:
-      y.append(fm.get_part_of_speech_count(['VBZ', 'VBD'], book_id))
-    except:
-      y.append(0)
-
-  plt.scatter(x, y)
-  plt.xlabel(x_feature)
-  plt.ylabel(y_feature)
-  plt.show()
-
-
-def plot_features_by_name(x_feature, y_feature, pretty_x_name=None, pretty_y_name=None):
+def plot_features_by_name(x_feature, y_feature, pretty_x_name=None,
+  pretty_y_name=None, save=False):
   if pretty_x_name is None:
     pretty_x_name = x_feature
   if pretty_y_name is None:
@@ -180,24 +163,49 @@ def plot_features_by_name(x_feature, y_feature, pretty_x_name=None, pretty_y_nam
         .format(y_feature, book_id))
       y.append(0)
 
-  plt.scatter(x, y)
+  plt.scatter(x, y, color='green')
+
+  # Line of best fit.
+  plt.plot(x, np.poly1d(np.polyfit(x, y, 1))(x), '--', color='blue')
+
   plt.xlabel(pretty_x_name)
   plt.ylabel(pretty_y_name)
-  plt.title(pretty_y_name + ' against ' + pretty_x_name + ' for all books')
-  plt.show()
+  plt.title(pretty_y_name)
+  if save:
+    filename = y_feature + '_by_' + x_feature + '.png'
+    filepath = os.path.join(PLOTS_DIR, filename)
+    logging.info('Saving plot: {}'.format(filepath))
+    plt.savefig(filepath)
+    plt.close()
+  else:
+    plt.show()
+
+def plot_all_pos():
+  all_pos = ['nouns', 'verbs', 'adjectives', 'adverbs', \
+      'CC', 'CD', 'DT', 'EX', 'FW', 'IN', 'JJ', 'JJR', 'JJS', 'LS', \
+      'MD', 'NN', 'NNS', 'NNP', 'NNPS', 'PDT', 'POS', 'PRP', 'PRP$', 'RB', \
+      'RBR', 'RBS', 'RP', 'SYM', 'TO', 'UH', 'VB', 'VBD', 'VBG', 'VBN', \
+      'VBP', 'VBZ', 'WDT', 'WP', 'WP$', 'WRB']
+
+  for pos in all_pos:
+    plot_features_by_name('year', pos + ' all ratio',
+      pretty_y_name='Proportion of part of speech: ' + pos, save=True)
+
 
 def plot_features():
-  # plot_features_by_name('male_pronouns', 'female_pronouns')
+  plot_features_by_name('male_pronouns', 'female_pronouns')
   # plot_features_by_name('nouns', 'verbs')
-  # plot_features_by_name('year', 'female_male_pronoun_ratio')
+  # plot_features_by_name('year', 'female_male_pronoun_ratio', save=True)
+  # plot_features_by_name('year', 'word_count', save=True)
+  # plot_features_by_name('year', 'type_token_ratio', save=True)
+  # plot_features_by_name('year', 'vocab_size', save=True)
   # plot_features_by_name('year', 'nouns verbs ratio')
   # # plot_features_by_name('year', 'nouns adjectives ratio')
   # plot_features_by_name('year', 'nouns verbs ratio')
   # plot_features_by_name('year', 'nouns adjectives ratio')
-  # plot_features_by_name('year', 'type_token_ratio')
   # plot_features_by_name('year', 'nouns adverbs ratio')
-  plot_features_by_name('year', 'nouns all ratio', pretty_y_name='Proportion of noun types')
-  # plot_features_by_name('year', 'word_count')
+  # plot_features_by_name('year', 'nouns all ratio', pretty_y_name='Proportion of noun types')
+  # plot_all_pos()
 
 
 def make_frequency_plots_by_era():

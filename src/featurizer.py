@@ -25,10 +25,10 @@ class FeaturizerManager(object):
   # Enumeration of parts of speech:
   # https://cs.nyu.edu/grishman/jet/guide/PennPOS.html
   POS_CATEGORIES = {
-    'nouns': ['NN', 'NNS'],
-    'verbs': ['VBZ', 'VBD'],
+    'nouns': ['NN', 'NNS', 'NNP', 'NNPS', 'PRP', 'PRP$', 'WP', 'WP$'],
+    'verbs': ['VB', 'VBD', 'VBG', 'VBN', 'VBP', 'VBZ'],
     'adjectives': ['JJ', 'JJR', 'JJS'],
-    'adverbs': ['RB', 'RBR', 'RBS'],
+    'adverbs': ['RB', 'RBR', 'RBS', 'WRB'],
     'all': ['CC', 'CD', 'DT', 'EX', 'FW', 'IN', 'JJ', 'JJR', 'JJS', 'LS', \
       'MD', 'NN', 'NNS', 'NNP', 'NNPS', 'PDT', 'POS', 'PRP', 'PRP$', 'RB', \
       'RBR', 'RBS', 'RP', 'SYM', 'TO', 'UH', 'VB', 'VBD', 'VBG', 'VBN', \
@@ -46,7 +46,7 @@ class FeaturizerManager(object):
         WordCountFeaturizer(),
         VocabSizeFeaturizer(),
         PartOfSpeechFeaturizer(),
-        MedianSentenceLengthFeaturizer(),
+        # MedianSentenceLengthFeaturizer(),
       ]
     self.featurizer_list = featurizer_list
     self.tagger = PerceptronTagger()
@@ -91,6 +91,8 @@ class FeaturizerManager(object):
       return book_year
     elif feature_name in self.POS_CATEGORIES:
       return self.get_part_of_speech_count(self.POS_CATEGORIES[feature_name], book_id)
+    elif feature_name in self.POS_CATEGORIES['all']:
+      return self.get_part_of_speech_count([feature_name], book_id)
     else:
       return self.featurizer_map[feature_name].get_value(book_id)
 
