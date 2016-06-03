@@ -60,12 +60,15 @@ class Plotter():
     self.plot_word_group_frequencies(word_groups)
 
 
-  def plot_word_group_frequencies(self, word_groups, stem=False):
+  def plot_word_group_frequencies(self, word_groups, stem=False,
+    normalize=False):
     """Plot frequencies of word groups by era.
 
     Args:
       word_groups: array of arrays comprising word groups.
       stem (bool): whether to stem the input words.
+      noralize (bool): whether to visualize percentage change instead of
+        absolute change.
 
     Usage:
       plotter.plot_word_group_frequencies([
@@ -87,11 +90,17 @@ class Plotter():
         else:
           sum_frequencies += self.counts[word_group[i]]
 
+      if normalize:
+        sum_frequencies = sum_frequencies / sum_frequencies[0]
+
       plt.plot(sum_frequencies,
-        label='Cohort for \'{}\''.format(word_group[0]))
+        label='Group: {}'.format(word_group))
 
     plt.title('Word frequencies')
-    plt.ylabel('Normalized word frequency')
+    if normalize:
+      plt.ylabel('Word group frequency relative to start')
+    else:
+      plt.ylabel('Word group frequency')
     plt.xlabel('Era')
     plt.legend()
     plt.show()
@@ -222,12 +231,50 @@ def make_frequency_plots_by_era():
   cohorts = [w for w, _ in c.get_most_fluctuating_cohorts(fluctuation_fn)[:5]]
   plotter.plot_cohort_frequencies(cohorts)
 
+def make_frequency_plots_for_word_groups():
+  c = Correlator()
+  c.load_counts('data/pickle/tcc_counts_1900-1999.pickle')
+  c.load_correlations('data/pickle/tcc_correlations_1900-1999.pickle')
+  plotter = Plotter(correlator=c)
+
+  plotter.plot_word_group_frequencies([
+    ['bitch', 'whore'],
+    ['tattoo'],
+    ['flint'],
+  ], normalize=True)
+
+  plotter.plot_word_group_frequencies([
+    ['war'],
+    ['damn'],
+    ['sex', 'drug'],
+  ], normalize=True)
+
+  plotter.plot_word_group_frequencies([
+    ['phone'],
+    ['film'],
+    ['letter'],
+  ], normalize=True)
+
+  plotter.plot_word_group_frequencies([
+    ['onto'],
+    ['of']
+  ], normalize=True)
+
+  plotter.plot_word_group_frequencies([
+    ['which'],
+    ['that']
+  ], normalize=True)
+
+  plotter.plot_word_group_frequencies([
+    ['one', 'two', 'three'],
+    ['1', '2', '3']
+  ], normalize=True)
 
 def main():
   logging.basicConfig(format='[%(name)s %(asctime)s]\t%(msg)s',
     stream=sys.stderr, level=logging.DEBUG)
   # make_frequency_plots_by_era()
-  plot_features()
+  make_frequency_plots_for_word_groups()
 
 if __name__ == '__main__':
   main()

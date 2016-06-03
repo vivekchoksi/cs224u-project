@@ -490,8 +490,6 @@ class Correlator():
         representing frequency counts of a word.
       k (int): the number of most highly fluctuating words to report.
     """
-    logging.info('Computing highest fluctuating words...')
-
     # Default fluctuation function.
     if fluctuation_fn is None:
       fluctuation_fn = self.elementwise_fluctuation
@@ -509,7 +507,8 @@ class Correlator():
     print 'Words that see the most fluctuation in frequency:'
     for word, _ in fluctuations[:k]:
       cohort_words = [w for w, _ in self.get_cohort(word)]
-      print '...', word, ':', self.counts[word]
+      # print '...', word, ':', self.counts[word]
+      print '...', word
 
     return fluctuations[:k]
 
@@ -562,6 +561,20 @@ class Correlator():
     fluctuation = 0.0
     for i in range(array.size - 1):
       fluctuation += np.abs(array[i+1] - array[i])
+    return fluctuation
+
+  def sum_only_upward_fluctuation(self, array):
+    fluctuation = 0.0
+    for i in range(array.size - 1):
+      increase = array[i+1] - array[i]
+      fluctuation += increase / array[i] if increase > 0 else 0
+    return fluctuation
+
+  def sum_only_downward_fluctuation(self, array):
+    fluctuation = 0.0
+    for i in range(array.size - 1):
+      decrease = array[i] - array[i-1]
+      fluctuation += decrease / array[i] if decrease > 0 else 0
     return fluctuation
 
   def upward_fluctuation(self, array):
@@ -684,9 +697,17 @@ def run_correlator():
   # correlator.load_counts('data/pickle/tcc_counts_by_list.pickle')
   # correlator.load_correlations('data/pickle/tcc_correlations_by_list.pickle')
 
-  correlator.get_most_fluctuating_words(correlator.upward_fluctuation_between_halves)
-  print '...'
-  correlator.get_most_fluctuating_words(correlator.downward_fluctuation_between_halves)
+
+  correlator.get_most_fluctuating_words(lambda arr: (np.max(arr) - np.min(arr)) / np.min(arr))
+
+  print 'Most upward trending words:'
+  correlator.get_most_fluctuating_words(correlator.sum_only_upward_fluctuation)
+  print 'Most downward trending words:'
+  correlator.get_most_fluctuating_words(correlator.sum_only_downward_fluctuation)
+
+
+  # correlator.get_most_fluctuating_words(correlator.upward_fluctuation_between_halves)
+  # correlator.get_most_fluctuating_words(correlator.downward_fluctuation_between_halves)
 
  
 def run_wc_by_book():
