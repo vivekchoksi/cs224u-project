@@ -481,6 +481,38 @@ class Correlator():
       # Compute the cohort now.
       return self._correlate_word(word, k)
 
+  def get_most_fluctuating_words(self, fluctuation_fn=None, k=20):
+    """Reports the words for which the frequencies fluctuated most, given
+    some input function to measure fluctuation.
+
+    Args:
+      fluctuation_fn: a function to report a fluctuation score given an array
+        representing frequency counts of a word.
+      k (int): the number of most highly fluctuating words to report.
+    """
+    logging.info('Computing highest fluctuating words...')
+
+    # Default fluctuation function.
+    if fluctuation_fn is None:
+      fluctuation_fn = self.elementwise_fluctuation
+
+    fluctuations = {}
+    for word in self.correlations:
+      # Compute a single fluctuation score for the word.
+      fluctuations[word] = fluctuation_fn(self.counts[word])
+
+    # Sort to get the most fluctuating cohorts
+    fluctuations = sorted(
+      fluctuations.items(), key=operator.itemgetter(1), reverse=True)
+
+    # Print the top several most fluctuating cohorts.
+    print 'Words that see the most fluctuation in frequency:'
+    for word, _ in fluctuations[:k]:
+      cohort_words = [w for w, _ in self.get_cohort(word)]
+      print '...', word, ':', self.counts[word]
+
+    return fluctuations[:k]
+
   def get_most_fluctuating_cohorts(
     self, fluctuation_fn=None, k=20):
     """Reports the cohorts for which the frequencies fluctuated most, given
@@ -520,6 +552,12 @@ class Correlator():
 
     return fluctuations[:k]
 
+  def std_dev_times_freq_fluctuation(self, array):
+    return array.std() * np.sum(array)
+
+  def std_dev_fluctuation(self, array):
+    return array.std()
+
   def elementwise_fluctuation(self, array):
     fluctuation = 0.0
     for i in range(array.size - 1):
@@ -532,7 +570,7 @@ class Correlator():
   def downward_fluctuation(self, array):
     return array[0] - array[-1]
 
-  def fluctuation_between_halves(self, array):
+  def upward_fluctuation_between_halves(self, array):
     first_half = 0.0
     second_half = 0.0
     for i in range(array.size):
@@ -541,6 +579,9 @@ class Correlator():
       else:
         second_half += array[i]
     return second_half - first_half
+
+  def downward_fluctuation_between_halves(self, array):
+    return -self.upward_fluctuation_between_halves(array)
 
   def _count_occurrences(self, reader):
     """Calculate normalized word frequencies for each word by era as
@@ -636,11 +677,17 @@ def run_correlator():
   correlator = Correlator()
   # correlator.preprocess_counts(TwentiethCenturyReader(), 'data/pickle/tcc_counts_1900-1999.pickle')
   # correlator.preprocess_correlations(k=20, pickle_dump_file='data/pickle/tcc_correlations_1900-1999.pickle')
-  # correlator.load_counts('data/pickle/tcc_counts_1900-1999.pickle')
-  # correlator.load_correlations('data/pickle/tcc_correlations_1900-1999.pickle')
-  correlator.preprocess_counts(TccListReader(), 'data/pickle/tcc_counts_by_list.pickle')
-  correlator.preprocess_correlations(k=20, pickle_dump_file='data/pickle/tcc_correlations_by_list.pickle')
-  correlator.get_most_fluctuating_cohorts(correlator.fluctuation_between_halves)
+  correlator.load_counts('data/pickle/tcc_counts_1900-1999.pickle')
+  correlator.load_correlations('data/pickle/tcc_correlations_1900-1999.pickle')
+  # correlator.preprocess_counts(TccListReader(), 'data/pickle/tcc_counts_by_list.pickle')
+  # correlator.preprocess_correlations(k=20, pickle_dump_file='data/pickle/tcc_correlations_by_list.pickle')
+  # correlator.load_counts('data/pickle/tcc_counts_by_list.pickle')
+  # correlator.load_correlations('data/pickle/tcc_correlations_by_list.pickle')
+
+  correlator.get_most_fluctuating_words(correlator.upward_fluctuation_between_halves)
+  print '...'
+  correlator.get_most_fluctuating_words(correlator.downward_fluctuation_between_halves)
+
  
 def run_wc_by_book():
   wcp = WordCountsBookDataProcessor(WordCountsBookReader())
