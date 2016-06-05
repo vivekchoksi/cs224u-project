@@ -51,8 +51,6 @@ class BookReader():
 
 
 
-
-
 class WordCountsBookReader(BookReader):
   """
   Yields Counter of words for each book
@@ -98,6 +96,47 @@ class WordCountsBookReader(BookReader):
         if not filename.startswith('.'):
           filenames.append((year, os.path.join(year_dir, filename)))
 
+    return filenames
+
+class TwentiethCenturyWordCountsBookReader(WordCountsBookReader):
+  """
+  Yields Counter of words for each book
+  """
+
+  START_YEAR = 1900
+  END_YEAR = 1999
+  CORPUS_SUBDIR = '20thCenturyCorpus'
+
+  def __init__(self, era_size=5):
+    self.era_size=era_size
+    self.num_eras = int(np.ceil(\
+      float(self.END_YEAR - self.START_YEAR + 1) / era_size))
+
+  def read_book(self):
+    already_processed = set()
+
+    for year, file in self._get_filenames():
+      print file
+      title = file.split('/')[-1]
+      print title
+
+      if title not in already_processed:
+        already_processed.add(title)
+        c = Counter()
+        with open(file, 'r') as infile:
+          #print file
+          for line in infile:
+            # Make lowercase, remove punctuation, and split into words.
+            c.update(util.tokenize_words(line))
+            #c.update(line.split()
+        yield (title, (year, c))
+
+  def _get_filenames(self):
+    tcr = TwentiethCenturyReader()
+    filenames = []
+    for era in range(tcr.get_num_eras()):
+      for filename in tcr._get_filenames(era):
+        filenames.append((tcr._get_book_year(filename), filename))
     return filenames
 
 
@@ -711,10 +750,10 @@ def run_correlator():
 
  
 def run_wc_by_book():
-  wcp = WordCountsBookDataProcessor(WordCountsBookReader())
-  wcp.preprocess_word_counts("wc_by_book.pickle")
+  wcp = WordCountsBookDataProcessor(TwentiethCenturyWordCountsBookReader())
+  wcp.preprocess_word_counts("tcc_wc_by_book.pickle")
   #wcp.load_word_counts("wc_by_book.pickle")
-  print wcp.get_data_single_book("Beside the Bonnie Brier Bush", ['brier'])
+  # print wcp.get_data_single_book("Beside the Bonnie Brier Bush", ['brier'])
 
 def test_tcc_list_reader():
   reader = TccListReader()
@@ -731,8 +770,8 @@ def test_tcc_list_reader():
 def main():
   logging.basicConfig(format='[%(name)s %(asctime)s]\t%(msg)s',
     stream=sys.stderr, level=logging.DEBUG)
-  run_correlator()
-  # run_wc_by_book()
+  # run_correlator()
+  run_wc_by_book()
   # test_tcc_list_reader()
 
 if __name__ == '__main__':

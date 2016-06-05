@@ -25,7 +25,7 @@ class Plotter():
   Usage:
     plotter = Plotter()
     plotter.load_counts('ab_counts.pickle')
-    plotter.plot_cohort_frequencies([
+    plotter.plot_word_group_frequencies([
       ['war', 'shortage', 'casualties'],
       ['thou', 'didst', 'hast']
     ])
@@ -110,7 +110,7 @@ class BookWcPlotter(Plotter):
   """Plot cohort frequencies by book
   """
 
-  def plot_cohort_frequencies(self, word_groups):
+  def plot_word_group_frequencies(self, word_groups):
 
     title_to_data = self.counts
 
@@ -237,44 +237,56 @@ def make_frequency_plots_for_word_groups():
   c.load_correlations('data/pickle/tcc_correlations_1900-1999.pickle')
   plotter = Plotter(correlator=c)
 
-  plotter.plot_word_group_frequencies([
-    ['bitch', 'whore'],
-    ['tattoo'],
-    ['flint'],
-  ], normalize=True)
+  # plotter.plot_word_group_frequencies([
+  #   ['bitch', 'whore'],
+  #   ['tattoo'],
+  #   ['flint'],
+  # ], normalize=True)
 
-  plotter.plot_word_group_frequencies([
-    ['war'],
-    ['damn'],
-    ['sex', 'drug'],
-  ], normalize=True)
+  # plotter.plot_word_group_frequencies([
+  #   ['war'],
+  #   ['damn'],
+  #   ['sex', 'drug'],
+  # ], normalize=True)
 
-  plotter.plot_word_group_frequencies([
-    ['phone'],
-    ['film'],
-    ['letter'],
-  ], normalize=True)
+  # plotter.plot_word_group_frequencies([
+  #   ['phone'],
+  #   ['film'],
+  #   ['letter'],
+  # ], normalize=True)
 
-  plotter.plot_word_group_frequencies([
-    ['onto'],
-    ['of']
-  ], normalize=True)
+  # plotter.plot_word_group_frequencies([
+  #   ['onto'],
+  #   ['of']
+  # ], normalize=True)
 
-  plotter.plot_word_group_frequencies([
-    ['which'],
-    ['that']
-  ], normalize=True)
+  # plotter.plot_word_group_frequencies([
+  #   ['which'],
+  #   ['that']
+  # ], normalize=True)
 
   plotter.plot_word_group_frequencies([
     ['one', 'two', 'three'],
     ['1', '2', '3']
-  ], normalize=True)
+  ], normalize=False)
+
+def make_frequency_scatter_plots():
+  c = Correlator()
+  c.load_counts('data/pickle/tcc_wc_by_book.pickle')
+  plotter = BookWcPlotter(correlator=c)
+
+  plotter.plot_word_group_frequencies([
+    ['one', 'two', 'three'],
+    ['1', '2', '3']
+  ])
+
 
 def main():
   logging.basicConfig(format='[%(name)s %(asctime)s]\t%(msg)s',
     stream=sys.stderr, level=logging.DEBUG)
   # make_frequency_plots_by_era()
-  make_frequency_plots_for_word_groups()
+  # make_frequency_plots_for_word_groups()
+  make_frequency_scatter_plots()
 
 if __name__ == '__main__':
   main()
