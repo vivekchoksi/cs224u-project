@@ -11,13 +11,14 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import numpy as np
 import os
+from collections import defaultdict
 
 import util
 from correlator import Correlator
 from featurizer import FeaturizerManager
 
 PLOTS_DIR = os.path.join(os.path.dirname(__file__), '../plots/')
-
+BOOK_METADATA = os.path.join(os.path.dirname(__file__), '../data/pickle/book_metadata.pickle')
 
 class Plotter():
   """Make plots.
@@ -139,7 +140,8 @@ class BookWcPlotter(Plotter):
 
       max_y = max(max_y, np.max(normalized_wcs))
 
-      plt.scatter(years, normalized_wcs, color=c, label='Group: {}'.format(word_group))
+      plt.scatter(years, normalized_wcs,
+        color=c, label='Group: {}'.format(word_group), alpha=0.5)
 
     # Set the scaling to show all y values nicely.
     plt.ylim([-max_y / 15.0, 1.2 * max_y])
@@ -151,9 +153,83 @@ class BookWcPlotter(Plotter):
     plt.legend()
     plt.show()
 
-def get_feature_value(featurizer_manager, feature_name, book_id, book_year):
-  if feature_name is 'year':
-    return book_year
+def make_groupings(book_metadata, group_by_attr):
+  groupings = defaultdict(lambda: [])
+  fm = FeaturizerManager()
+  for book_id in fm.get_book_ids():
+    attr_val = book_metadata[book_id][group_by_attr].strip()
+    groupings[attr_val].append(book_id)
+  return groupings
+
+def make_list_groupings(book_metadata):
+  lists = ['exp_rank', 'pub_prog_rank', 'ml_readers_rank', 'ml_editors_rank', 'bestsellers_rank']
+  groupings = {list_name: [] for list_name in lists}
+  fm = FeaturizerManager()
+  for book_id in fm.get_book_ids():
+    best_list = None
+    best_rank = sys.maxint
+    for list_name in groupings:
+      curr_rank = book_metadata[book_id][list_name]
+      if curr_rank > 0 and curr_rank < best_rank:
+        best_list = list_name
+        best_rank = curr_rank
+    # print book_id, book_metadata[book_id], best_list
+    assert(best_list is not None)
+    groupings[best_list].append(book_id)
+  return groupings
+
+def plot_features_by_name_and_group(book_metadata, groupings, x_feature, y_feature, pretty_x_name=None,
+  pretty_y_name=None, save=False):
+  if pretty_x_name is None:
+    pretty_x_name = x_feature
+  if pretty_y_name is None:
+    pretty_y_name = y_feature
+
+  logging.info('Plotting {} by {}'.format(y_feature, x_feature))
+
+  colors = cm.rainbow(np.linspace(0, 1, len(groupings)))
+  attr_to_color = {}
+  for attr_val, color in zip(groupings.keys(), colors):
+    attr_to_color[attr_val] = color
+
+  fm = FeaturizerManager()
+  for attr_val in groupings:
+    x = []
+    y = []
+    for book_id in groupings[attr_val]:
+      book_year = book_metadata[book_id]['year']
+      curr_x = None
+      curr_y = None
+      try:
+        curr_x = fm.get_feature_value_by_name(x_feature, book_id, book_year)
+      except KeyError:
+        logging.error('Invalid feature value for feature \'{}\' and book id \'{}\''
+          .format(x_feature, book_id))
+      try:
+        curr_y = fm.get_feature_value_by_name(y_feature, book_id, book_year)
+      except KeyError:
+        logging.error('Invalid feature value for feature \'{}\' and book id \'{}\''
+          .format(y_feature, book_id))
+      
+      if curr_x is not None and curr_y is not None:
+        x.append(curr_x)
+        y.append(curr_y)
+
+    plt.scatter(x, y, color = attr_to_color[attr_val], label=attr_val, alpha=0.5, s=np.pi*15)
+
+  plt.xlabel(pretty_x_name)
+  plt.ylabel(pretty_y_name)
+  plt.title(pretty_y_name)
+  plt.legend()
+
+  if save:
+    filename = y_feature + '_by_' + x_feature + '.png'
+    filepath = os.path.join(PLOTS_DIR, filename)
+    logging.info('Saving plot: {}'.format(filepath))
+    plt.savefig(filepath)
+    plt.close()
+  else:
+    plt.show()
 
 
 def plot_features_by_name(x_feature, y_feature, pretty_x_name=None,
@@ -169,20 +245,23 @@ def plot_features_by_name(x_feature, y_feature, pretty_x_name=None,
   x = []
   y = []
   for book_year, book_id in fm.get_book_year_and_ids():
+    curr_x = None
+    curr_y = None
     try:
-      x.append(fm.get_feature_value_by_name(x_feature, book_id, book_year))
+      curr_x = fm.get_feature_value_by_name(x_feature, book_id, book_year)
     except KeyError:
       logging.error('Invalid feature value for feature \'{}\' and book id \'{}\''
         .format(x_feature, book_id))
-      x.append(0)
     try:
-      y.append(fm.get_feature_value_by_name(y_feature, book_id, book_year))
+      curr_y = fm.get_feature_value_by_name(y_feature, book_id, book_year)
     except KeyError:
       logging.error('Invalid feature value for feature \'{}\' and book id \'{}\''
         .format(y_feature, book_id))
-      y.append(0)
 
-  plt.scatter(x, y, color='green')
+    if curr_x is not None and curr_y is not None:
+      x.append(curr_x)
+      y.append(curr_y)
+      plt.scatter(curr_x, curr_y)
 
   # Line of best fit.
   plt.plot(x, np.poly1d(np.polyfit(x, y, 1))(x), '--', color='blue')
@@ -200,6 +279,10 @@ def plot_features_by_name(x_feature, y_feature, pretty_x_name=None,
     plt.show()
 
 def plot_all_pos():
+  book_metadata = util.pickle_load(BOOK_METADATA)
+  groupings = make_groupings(book_metadata, 'gender')
+  list_groupings = make_list_groupings(book_metadata)
+
   all_pos = ['nouns', 'verbs', 'adjectives', 'adverbs', \
       'CC', 'CD', 'DT', 'EX', 'FW', 'IN', 'JJ', 'JJR', 'JJS', 'LS', \
       'MD', 'NN', 'NNS', 'NNP', 'NNPS', 'PDT', 'POS', 'PRP', 'PRP$', 'RB', \
@@ -207,14 +290,18 @@ def plot_all_pos():
       'VBP', 'VBZ', 'WDT', 'WP', 'WP$', 'WRB']
 
   for pos in all_pos:
-    plot_features_by_name('year', pos + ' all ratio',
-      pretty_y_name='Proportion of part of speech: ' + pos, save=True)
+    plot_features_by_name_and_group(book_metadata, list_groupings, 'year', pos + ' all ratio',
+      pretty_y_name='Proportion of part of speech: ' + pos, save=False)
 
 
 def plot_features():
-  plot_features_by_name('male_pronouns', 'female_pronouns')
+  book_metadata = util.pickle_load(BOOK_METADATA)
+  groupings = make_groupings(book_metadata, 'gender')
+  list_groupings = make_list_groupings(book_metadata)
+  plot_features_by_name_and_group(book_metadata, list_groupings, 'year', 'female_male_pronoun_ratio')
+  plot_all_pos()
+  # plot_features_by_name('male_pronouns', 'female_pronouns')
   # plot_features_by_name('nouns', 'verbs')
-  # plot_features_by_name('year', 'female_male_pronoun_ratio', save=True)
   # plot_features_by_name('year', 'word_count', save=True)
   # plot_features_by_name('year', 'type_token_ratio', save=True)
   # plot_features_by_name('year', 'vocab_size', save=True)
@@ -224,7 +311,6 @@ def plot_features():
   # plot_features_by_name('year', 'nouns adjectives ratio')
   # plot_features_by_name('year', 'nouns adverbs ratio')
   # plot_features_by_name('year', 'nouns all ratio', pretty_y_name='Proportion of noun types')
-  # plot_all_pos()
 
 
 def make_frequency_plots_by_era():
@@ -247,33 +333,33 @@ def make_frequency_plots_for_word_groups():
   c.load_correlations('data/pickle/tcc_correlations_1900-1999.pickle')
   plotter = Plotter(correlator=c)
 
-  # plotter.plot_word_group_frequencies([
-  #   ['bitch', 'whore'],
-  #   ['tattoo'],
-  #   ['flint'],
-  # ], normalize=True)
+  plotter.plot_word_group_frequencies([
+    ['bitch', 'whore'],
+    ['tattoo'],
+    ['flint'],
+  ], normalize=True)
 
-  # plotter.plot_word_group_frequencies([
-  #   ['war'],
-  #   ['damn'],
-  #   ['sex', 'drug'],
-  # ], normalize=True)
+  plotter.plot_word_group_frequencies([
+    ['war'],
+    ['damn'],
+    ['sex', 'drug'],
+  ], normalize=True)
 
-  # plotter.plot_word_group_frequencies([
-  #   ['phone'],
-  #   ['film'],
-  #   ['letter'],
-  # ], normalize=True)
+  plotter.plot_word_group_frequencies([
+    ['phone'],
+    ['film'],
+    ['letter'],
+  ], normalize=True)
 
-  # plotter.plot_word_group_frequencies([
-  #   ['onto'],
-  #   ['of']
-  # ], normalize=True)
+  plotter.plot_word_group_frequencies([
+    ['onto'],
+    ['of']
+  ], normalize=True)
 
-  # plotter.plot_word_group_frequencies([
-  #   ['which'],
-  #   ['that']
-  # ], normalize=True)
+  plotter.plot_word_group_frequencies([
+    ['which'],
+    ['that']
+  ], normalize=True)
 
   plotter.plot_word_group_frequencies([
     ['one', 'two', 'three'],
@@ -304,34 +390,13 @@ def make_frequency_scatter_plots():
     ['sex', 'drug'],
   ])
 
-  plotter.plot_word_group_frequencies([
-    ['phone'],
-    ['film'],
-    ['letter'],
-  ])
-
-  plotter.plot_word_group_frequencies([
-    ['onto'],
-    ['of']
-  ])
-
-  plotter.plot_word_group_frequencies([
-    ['which'],
-    ['that']
-  ])
-
-  plotter.plot_word_group_frequencies([
-    ['one', 'two', 'three'],
-    ['1', '2', '3']
-  ])
-
-
 def main():
   logging.basicConfig(format='[%(name)s %(asctime)s]\t%(msg)s',
     stream=sys.stderr, level=logging.DEBUG)
+  plot_features()
   # make_frequency_plots_by_era()
   # make_frequency_plots_for_word_groups()
-  make_frequency_scatter_plots()
+  # make_frequency_scatter_plots()
 
 if __name__ == '__main__':
   main()
