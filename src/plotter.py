@@ -110,15 +110,19 @@ class BookWcPlotter(Plotter):
   """Plot cohort frequencies by book
   """
 
-  def plot_word_group_frequencies(self, word_groups):
+  def plot_word_group_frequencies(self, word_groups, stem=False):
 
     title_to_data = self.counts
 
     colors = cm.rainbow(np.linspace(0, 1, len(word_groups)))
+
+    max_y = 0.0
+
     # for each word group
     for word_group, c in zip(word_groups, colors):
 
-      word_group = util.stem_words(word_group)
+      if stem:
+        word_group = util.stem_words(word_group)
 
       years = []
       normalized_wcs = []
@@ -133,9 +137,15 @@ class BookWcPlotter(Plotter):
         years.append(year)
         normalized_wcs.append(norm_wc)
 
-      plt.scatter(years, normalized_wcs, color=c, label='Cohort for \'{}\''.format(word_group[0]))
+      max_y = max(max_y, np.max(normalized_wcs))
 
-    plt.title('Word frequencies by Novel')
+      plt.scatter(years, normalized_wcs, color=c, label='Group: {}'.format(word_group))
+
+    # Set the scaling to show all y values nicely.
+    plt.ylim([-max_y / 15.0, 1.2 * max_y])
+    # plt.yscale('log')
+    
+    plt.title('Word frequencies by novel')
     plt.ylabel('Normalized word frequency')
     plt.xlabel('Year')
     plt.legend()
@@ -273,7 +283,42 @@ def make_frequency_plots_for_word_groups():
 def make_frequency_scatter_plots():
   c = Correlator()
   c.load_counts('data/pickle/tcc_wc_by_book.pickle')
+  # c.load_counts('data/pickle/wc_by_book.pickle')
   plotter = BookWcPlotter(correlator=c)
+
+  plotter.plot_word_group_frequencies([
+    ['phone'],
+    ['film'],
+    ['letter'],
+  ])
+
+  plotter.plot_word_group_frequencies([
+    ['bitch', 'whore'],
+    ['tattoo'],
+    ['flint'],
+  ])
+
+  plotter.plot_word_group_frequencies([
+    ['war'],
+    ['damn'],
+    ['sex', 'drug'],
+  ])
+
+  plotter.plot_word_group_frequencies([
+    ['phone'],
+    ['film'],
+    ['letter'],
+  ])
+
+  plotter.plot_word_group_frequencies([
+    ['onto'],
+    ['of']
+  ])
+
+  plotter.plot_word_group_frequencies([
+    ['which'],
+    ['that']
+  ])
 
   plotter.plot_word_group_frequencies([
     ['one', 'two', 'three'],
