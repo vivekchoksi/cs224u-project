@@ -54,10 +54,8 @@ def create_book_tags(filepath):
 	corpus_dir = os.path.join(DATA_DIR, CORPUS_SUBDIR)
 
 	book_metadata = {}
-	#id_set = set()
 	count = 0
 	matches = 0
-	#all_filenames = set([os.path.join(corpus_dir, filename) for filename in os.listdir(corpus_dir)])
 
 	with open(filepath, 'rb') as f:
 		reader = csv.reader(f)
@@ -129,10 +127,6 @@ def create_book_tags(filepath):
 					book_metadata[book_id] = values
 					found_match = True
 					matches += 1
-					if book_id in id_set:
-						print "Dup id from key: ", book_id, title
-					else:
-						id_set.add(book_id)
 					break
 
 			if found_match:
@@ -154,10 +148,10 @@ def create_book_tags(filepath):
 								matches += 1
 								found_match = True
 								values['filepath'] = get_filepath(book_id)
-								if book_id in id_set:
-									print "Dup id from line matching: ", book_id, title
-								else:
-									id_set.add(book_id)
+								# if book_id in id_set:
+								# 	print "Dup id from line matching: ", book_id, title
+								# else:
+								# 	id_set.add(book_id)
 
 								book_metadata[book_id] = values
 								continue
