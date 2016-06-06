@@ -83,10 +83,10 @@ class FeaturizerManager(object):
           'tags': self._get_pos_counter(lower_split_tokens),
           'sentences': self.sentence_tokenizer.tokenize(util.decode_line(text)),
         }
-        for featurizer in self.featurizer_list:
+        for featurizer in featurizer_list:
           featurizer.process(text, book_id, **kwargs)
 
-    for featurizer in self.featurizer_list:
+    for featurizer in featurizer_list:
       featurizer.finish()
       featurizer.dump()
 
