@@ -161,6 +161,7 @@ def make_groupings(book_metadata, group_by_attr):
     groupings[attr_val].append(book_id)
   return groupings
 
+<<<<<<< HEAD
 def make_list_groupings(book_metadata):
   lists = ['exp_rank', 'pub_prog_rank', 'ml_readers_rank', 'ml_editors_rank', 'bestsellers_rank']
   groupings = {list_name: [] for list_name in lists}
@@ -177,6 +178,84 @@ def make_list_groupings(book_metadata):
     assert(best_list is not None)
     groupings[best_list].append(book_id)
   return groupings
+=======
+
+
+
+
+"""
+list_group1, list_group2: list of lists
+i.e., list_group1 = ['ml_readers_rank', 'ml_editors_rank']
+
+
+Default: assigns every book to a single list, based on originally established 
+rules for handling overlaps
+
+If list_group1 and list_group2 given: assigns every book to either the first or
+second group of lists.  If overlap=True, creates a third list for books that are in
+both of the list groups; otherwise, ignores books on both lists.
+(Excludes books not on either of the list groups.)
+
+"""
+
+def make_list_groupings(book_metadata, list_group1=None, list_group2=None, overlap=True):
+
+  # default, original case
+  if not (list_group1 and list_group2):
+    lists = ['exp_rank', 'pub_prog_rank', 'ml_readers_rank', 'ml_editors_rank', 'bestsellers_rank']
+    groupings = {list_name: [] for list_name in lists}
+    fm = FeaturizerManager()
+    for book_id in fm.get_book_ids():
+      best_list = None
+      best_rank = sys.maxint
+      for list_name in groupings:
+        curr_rank = book_metadata[book_id][list_name]
+        if curr_rank > 0 and curr_rank < best_rank:
+          best_list = list_name
+          best_rank = curr_rank
+      # print book_id, book_metadata[book_id], best_list
+      assert(best_list is not None)
+      groupings[best_list].append(book_id)
+    return groupings
+
+  # list groups provided by the user
+  else:
+    list1_key = ",".join(list_group1)
+    list2_key = ",".join(list_group2)
+    groupings = {list1_key:[], list2_key:[],}
+    if overlap:
+      groupings['overlap'] = []
+
+    fm = FeaturizerManager()
+
+    #for every book_id
+    for book_id in fm.get_book_ids():
+      md = book_metadata[book_id]
+
+      in_group1 = False
+      in_group2 = False
+
+      #check membership in group1
+      for book_list in list_group1:
+        if md[book_list] > 0:
+          in_group1 = True
+
+      #check membership in group2
+      for book_list in list_group2:
+        if md[book_list] > 0:
+          in_group2 = True
+
+      #assign to appropriate group
+      if in_group1 and in_group2 and overlap:
+        groupings['overlap'].append(book_id)
+      elif in_group1:
+        groupings[list1_key].append(book_id)
+      elif in_group2:
+        groupings[list2_key].append(book_id)
+
+    return groupings
+
+>>>>>>> 9a8036b0bab5fc2a329a71da7b411c0aab4f1a40
 
 def plot_features_by_name_and_group(book_metadata, groupings,
   x_feature, y_feature, pretty_x_name=None,
@@ -308,18 +387,22 @@ def plot_all_pos():
 def plot_features():
   book_metadata = util.pickle_load(BOOK_METADATA)
   groupings = make_groupings(book_metadata, 'gender')
-  list_groupings = make_list_groupings(book_metadata)
+  #list_groupings = make_list_groupings(book_metadata)
+  list_groupings = make_list_groupings(book_metadata, ['ml_editors_rank'], ['bestsellers_rank'])
   # plot_features_by_name_and_group(book_metadata, list_groupings, 'year', 'female_male_pronoun_ratio')
 
   # plot_features_by_name_and_group(book_metadata, groupings, 'year', 'median_sentence_length')
   # plot_features_by_name('year', 'median_sentence_length')
   # plot_features_by_name_and_group(book_metadata, list_groupings, 'year', 'flesch_kincaid')
-  plot_features_by_name_and_group(book_metadata, list_groupings, 'year', 'flesch_kincaid')
+
+  # plot_features_by_name('year', 'flesch_kincaid')
+
   # plot_all_pos()
-  # plot_features_by_name(book_metadata, 'male_pronouns', 'female_pronouns')
-  # plot_features_by_name(book_metadata, 'nouns', 'verbs')
-  # plot_features_by_name(book_metadata, 'year', 'word_count', save=True)
-  # plot_features_by_name(book_metadata, 'year', 'type_token_ratio', save=True)
+
+  plot_features_by_name_and_group(book_metadata, list_groupings, 'male_pronouns', 'female_pronouns')
+  # plot_features_by_name('nouns', 'verbs')
+  # plot_features_by_name('year', 'word_count', save=True)
+  # plot_features_by_name('year', 'type_token_ratio', save=True)
   # plot_features_by_name_and_group(book_metadata, list_groupings, 'year', 'type_token_ratio', save=False)
   # plot_features_by_name(book_metadata, 'year', 'nouns verbs ratio')
   # # plot_features_by_name(book_metadata, 'year', 'nouns adjectives ratio')

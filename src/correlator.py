@@ -755,16 +755,6 @@ def run_wc_by_book():
   #wcp.load_word_counts("wc_by_book.pickle")
   # print wcp.get_data_single_book("Beside the Bonnie Brier Bush", ['brier'])
 
-def test_tcc_list_reader():
-  reader = TccListReader()
-  for era in range(reader.get_num_eras()):
-    print "Era: %d" % era
-    fp_set = set()
-    filepaths = reader._get_filenames(era)
-    for fp in filepaths:
-      print fp
-      fp_set.add(fp)
-    print "era %d's total FPs: %d" % (era, len(fp_set))
 
 
 def main():
