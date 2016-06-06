@@ -309,11 +309,13 @@ def plot_features():
   book_metadata = util.pickle_load(BOOK_METADATA)
   groupings = make_groupings(book_metadata, 'gender')
   list_groupings = make_list_groupings(book_metadata)
-  plot_features_by_name_and_group(book_metadata, list_groupings, 'year', '<feature_name>')
-
-  list_groupings = make_list_groupings(book_metadata)
   # plot_features_by_name_and_group(book_metadata, list_groupings, 'year', 'female_male_pronoun_ratio')
-  plot_all_pos()
+
+  # plot_features_by_name_and_group(book_metadata, groupings, 'year', 'median_sentence_length')
+  # plot_features_by_name('year', 'median_sentence_length')
+  # plot_features_by_name_and_group(book_metadata, list_groupings, 'year', 'flesch_kincaid')
+  plot_features_by_name_and_group(book_metadata, list_groupings, 'year', 'flesch_kincaid')
+  # plot_all_pos()
   # plot_features_by_name('male_pronouns', 'female_pronouns')
   # plot_features_by_name('nouns', 'verbs')
   # plot_features_by_name('year', 'word_count', save=True)

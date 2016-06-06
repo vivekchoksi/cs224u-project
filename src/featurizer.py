@@ -14,6 +14,7 @@ import numpy as np
 import nltk
 import nltk.data, nltk.tag
 from nltk.tag.perceptron import PerceptronTagger
+from nltk.corpus import cmudict
 
 import util
 
@@ -46,7 +47,8 @@ class FeaturizerManager(object):
         WordCountFeaturizer(),
         VocabSizeFeaturizer(),
         PartOfSpeechFeaturizer(),
-        # MedianSentenceLengthFeaturizer(),
+        MedianSentenceLengthFeaturizer(),
+        FleschKincaidFeaturizer(),
       ]
     self.featurizer_list = featurizer_list
     self.tagger = PerceptronTagger()
@@ -65,15 +67,24 @@ class FeaturizerManager(object):
       book_id = util.filename_to_book_id(filename)
       filepath = self.get_corpus_filepath(filename)
       with open(filepath, 'r') as file:
-        for line in file:
-          lower_split_tokens = util.tokenize_words(line, stem=False)
-          kwargs = {
-            'lower_split': lower_split_tokens,
-            'tags': self._get_pos_counter(lower_split_tokens),
-            'sentences': self.sentence_tokenizer.tokenize(util.decode_line(line)),
-          }
-          for featurizer in self.featurizer_list:
-            featurizer.process(line, book_id, **kwargs)
+        #for line in file:
+        #  lower_split_tokens = util.tokenize_words(line, stem=False)
+        #  kwargs = {
+        #    'lower_split': lower_split_tokens,
+        #    'tags': self._get_pos_counter(lower_split_tokens),
+        #    'sentences': self.sentence_tokenizer.tokenize(util.decode_line(line)),
+        #  }
+        #  for featurizer in self.featurizer_list:
+        #    featurizer.process(line, book_id, **kwargs)
+        text = file.read()
+        lower_split_tokens = util.tokenize_words(text, stem=False)
+        kwargs = {
+          'lower_split': lower_split_tokens,
+          'tags': self._get_pos_counter(lower_split_tokens),
+          'sentences': self.sentence_tokenizer.tokenize(util.decode_line(text)),
+        }
+        for featurizer in self.featurizer_list:
+          featurizer.process(text, book_id, **kwargs)
 
     for featurizer in self.featurizer_list:
       featurizer.finish()
@@ -333,19 +344,55 @@ class MedianSentenceLengthFeaturizer(AbstractFeaturizer):
     self.feature_value = defaultdict(lambda: 0)
 
   def get_feature_name(self):
-    return 'sentence_length'
+    return 'median_sentence_length'
 
   def process(self, line, book_id, **kwargs):
     if 'sentences' in kwargs.keys():
-      print kwargs['sentences']
+      #print kwargs['sentences']
       for sentence in kwargs['sentences']:
         # print sentence
-        self.sentence_lengths[book_id].append(len(sentence))
+        sentence = sentence.replace(',', ' ').replace('.', ' ').replace('"', ' ')
+        if not sentence.isspace():
+          #print sentence
+          words = sentence.split()
+          self.sentence_lengths[book_id].append(len(words))
 
   def finish(self):
     for book_id in self.sentence_lengths:
-      median_length = np.median(np.array(self.sentence_lengths))
+      median_length = np.median(np.array(self.sentence_lengths[book_id]))
       self.feature_value[book_id] = median_length
+
+class FleschKincaidFeaturizer(AbstractFeaturizer):
+
+  def __init__(self):
+    super(FleschKincaidFeaturizer, self).__init__()
+    self.token_featurizer = WordCountFeaturizer()
+    self.sentence_featurizer = MedianSentenceLengthFeaturizer()
+    self.syllable_counts = defaultdict(lambda: 0)
+    self.cmudict = cmudict.dict()
+    self.feature_value = defaultdict(lambda: 0)
+
+  def get_feature_name(self):
+    return 'flesch_kincaid'
+
+  def numsyllables(self, word):
+    try:
+       return [len(list(y for y in x if y[-1].isdigit())) for x in self.cmudict[word.lower()]][0]
+    except KeyError:
+      return 0
+
+  def process(self, line, book_id, **kwargs):
+    self.sentence_featurizer.process(line, book_id, **kwargs)
+    #  self.token_featurizer.process(line, book_id, **kwargs)
+    if 'lower_split' in kwargs.keys():
+      for word in kwargs['lower_split']:
+	self.syllable_counts[book_id] += self.numsyllables(word)
+
+  def finish(self):
+    for book_id in self.syllable_counts:
+      word_count = self.token_featurizer.get_value(book_id)
+      sent_count = len(self.sentence_featurizer.sentence_lengths[book_id])
+      self.feature_value[book_id] = 0.39 * word_count / sent_count + 11.8 * self.syllable_counts[book_id] / word_count - 15.59
 
 def run_featurizers():
   featurizer_manager = FeaturizerManager()
