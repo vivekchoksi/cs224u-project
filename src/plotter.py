@@ -156,7 +156,7 @@ class BookWcPlotter(Plotter):
 def make_groupings(book_metadata, group_by_attr):
   groupings = defaultdict(lambda: [])
   fm = FeaturizerManager()
-  for book_id in fm.get_book_ids():
+  for book_id in fm.get_book_ids(book_metadata):
     attr_val = book_metadata[book_id][group_by_attr].strip()
     groupings[attr_val].append(book_id)
   return groupings
@@ -165,7 +165,7 @@ def make_list_groupings(book_metadata):
   lists = ['exp_rank', 'pub_prog_rank', 'ml_readers_rank', 'ml_editors_rank', 'bestsellers_rank']
   groupings = {list_name: [] for list_name in lists}
   fm = FeaturizerManager()
-  for book_id in fm.get_book_ids():
+  for book_id in fm.get_book_ids(book_metadata):
     best_list = None
     best_rank = sys.maxint
     for list_name in groupings:
@@ -242,7 +242,7 @@ def plot_features_by_name_and_group(book_metadata, groupings,
     plt.show()
 
 
-def plot_features_by_name(x_feature, y_feature, pretty_x_name=None,
+def plot_features_by_name(book_metadata, x_feature, y_feature, pretty_x_name=None,
   pretty_y_name=None, save=False):
   if pretty_x_name is None:
     pretty_x_name = x_feature
@@ -254,7 +254,7 @@ def plot_features_by_name(x_feature, y_feature, pretty_x_name=None,
   fm = FeaturizerManager()
   x = []
   y = []
-  for book_year, book_id in fm.get_book_year_and_ids():
+  for book_year, book_id in fm.get_book_year_and_ids(book_metadata):
     curr_x = None
     curr_y = None
     try:
@@ -316,17 +316,17 @@ def plot_features():
   # plot_features_by_name_and_group(book_metadata, list_groupings, 'year', 'flesch_kincaid')
   plot_features_by_name_and_group(book_metadata, list_groupings, 'year', 'flesch_kincaid')
   # plot_all_pos()
-  # plot_features_by_name('male_pronouns', 'female_pronouns')
-  # plot_features_by_name('nouns', 'verbs')
-  # plot_features_by_name('year', 'word_count', save=True)
-  # plot_features_by_name('year', 'type_token_ratio', save=True)
+  # plot_features_by_name(book_metadata, 'male_pronouns', 'female_pronouns')
+  # plot_features_by_name(book_metadata, 'nouns', 'verbs')
+  # plot_features_by_name(book_metadata, 'year', 'word_count', save=True)
+  # plot_features_by_name(book_metadata, 'year', 'type_token_ratio', save=True)
   # plot_features_by_name_and_group(book_metadata, list_groupings, 'year', 'type_token_ratio', save=False)
-  # plot_features_by_name('year', 'nouns verbs ratio')
-  # # plot_features_by_name('year', 'nouns adjectives ratio')
-  # plot_features_by_name('year', 'nouns verbs ratio')
-  # plot_features_by_name('year', 'nouns adjectives ratio')
-  # plot_features_by_name('year', 'nouns adverbs ratio')
-  # plot_features_by_name('year', 'nouns all ratio', pretty_y_name='Proportion of noun types')
+  # plot_features_by_name(book_metadata, 'year', 'nouns verbs ratio')
+  # # plot_features_by_name(book_metadata, 'year', 'nouns adjectives ratio')
+  # plot_features_by_name(book_metadata, 'year', 'nouns verbs ratio')
+  # plot_features_by_name(book_metadata, 'year', 'nouns adjectives ratio')
+  # plot_features_by_name(book_metadata, 'year', 'nouns adverbs ratio')
+  # plot_features_by_name(book_metadata, 'year', 'nouns all ratio', pretty_y_name='Proportion of noun types')
 
 
 def make_frequency_plots_by_era():

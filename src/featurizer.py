@@ -110,13 +110,18 @@ class FeaturizerManager(object):
   def get_part_of_speech_count(self, pos_list, book_id):
     return self.featurizer_map['pos_all'].get_value(pos_list, book_id)
 
-  def get_book_ids(self):
-    return [util.filename_to_book_id(filename) for filename in self.get_corpus_filenames()]
+  def get_book_ids(self, book_metadata=None):
+    if book_metadata is not None:
+      return book_metadata.keys()
+    else:
+      return [util.filename_to_book_id(filename) for filename in self.get_corpus_filenames()]
 
-  def get_book_year_and_ids(self):
-    # TODO: Replace with getting year from csv once that is implemented.
-    return [(util.filename_to_book_year(filename), util.filename_to_book_id(filename)) \
-      for filename in self.get_corpus_filenames()]
+  def get_book_year_and_ids(self, book_metadata=None):
+    if book_metadata is not None:
+      return [(book_metadata[key]['year'], key) for key in book_metadata.keys()]
+    else:
+      return [(util.filename_to_book_year(filename), util.filename_to_book_id(filename)) \
+        for filename in self.get_corpus_filenames()]
 
   def get_corpus_filenames(self):
     return os.listdir(CORPUS_DIR)
