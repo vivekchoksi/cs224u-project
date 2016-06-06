@@ -178,7 +178,8 @@ def make_list_groupings(book_metadata):
     groupings[best_list].append(book_id)
   return groupings
 
-def plot_features_by_name_and_group(book_metadata, groupings, x_feature, y_feature, pretty_x_name=None,
+def plot_features_by_name_and_group(book_metadata, groupings,
+  x_feature, y_feature, pretty_x_name=None,
   pretty_y_name=None, save=False):
   if pretty_x_name is None:
     pretty_x_name = x_feature
@@ -221,6 +222,15 @@ def plot_features_by_name_and_group(book_metadata, groupings, x_feature, y_featu
   plt.ylabel(pretty_y_name)
   plt.title(pretty_y_name)
   plt.legend()
+
+  # Shrink plot width by 20%.
+  ax = plt.gca()
+  box = ax.get_position()
+  ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+
+  # Put a legend to the right of the current axis.
+  ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+
 
   if save:
     filename = y_feature + '_by_' + x_feature + '.png'
@@ -287,7 +297,8 @@ def plot_all_pos():
       'CC', 'CD', 'DT', 'EX', 'FW', 'IN', 'JJ', 'JJR', 'JJS', 'LS', \
       'MD', 'NN', 'NNS', 'NNP', 'NNPS', 'PDT', 'POS', 'PRP', 'PRP$', 'RB', \
       'RBR', 'RBS', 'RP', 'SYM', 'TO', 'UH', 'VB', 'VBD', 'VBG', 'VBN', \
-      'VBP', 'VBZ', 'WDT', 'WP', 'WP$', 'WRB']
+      'VBP', 'VBZ', 'WDT', 'WP', 'WP$', 'WRB'
+  ]
 
   for pos in all_pos:
     plot_features_by_name_and_group(book_metadata, list_groupings, 'year', pos + ' all ratio',
@@ -298,13 +309,16 @@ def plot_features():
   book_metadata = util.pickle_load(BOOK_METADATA)
   groupings = make_groupings(book_metadata, 'gender')
   list_groupings = make_list_groupings(book_metadata)
-  plot_features_by_name_and_group(book_metadata, list_groupings, 'year', 'female_male_pronoun_ratio')
+  plot_features_by_name_and_group(book_metadata, list_groupings, 'year', '<feature_name>')
+
+  list_groupings = make_list_groupings(book_metadata)
+  # plot_features_by_name_and_group(book_metadata, list_groupings, 'year', 'female_male_pronoun_ratio')
   plot_all_pos()
   # plot_features_by_name('male_pronouns', 'female_pronouns')
   # plot_features_by_name('nouns', 'verbs')
   # plot_features_by_name('year', 'word_count', save=True)
   # plot_features_by_name('year', 'type_token_ratio', save=True)
-  # plot_features_by_name('year', 'vocab_size', save=True)
+  # plot_features_by_name_and_group(book_metadata, list_groupings, 'year', 'type_token_ratio', save=False)
   # plot_features_by_name('year', 'nouns verbs ratio')
   # # plot_features_by_name('year', 'nouns adjectives ratio')
   # plot_features_by_name('year', 'nouns verbs ratio')
