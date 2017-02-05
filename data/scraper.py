@@ -1,6 +1,21 @@
 '''
 scrapes Project Gutenberg for its American bestsellers 1895-1923
 list of books
+
+Usage:
+$ python data/scraper.py
+list of mirror urls: https://www.gutenberg.org/MIRRORS.ALL
+The scraper will take ~10 minutes to run.
+
+Once the scraper has finished running, you must manually
+adjust one file:
+
+data/ebooks-unzipped/1916/14571.txt
+	Change the line "encoding:ASCII" to "encoding:latin-1"
+
+$ python beautify-books.py
+
+Now the books are in the ebooks directory, in subdirectories by heading.
 '''
 
 from lxml import html, etree

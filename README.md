@@ -1,38 +1,5 @@
 # cs224u-project
 
+Final project for the Stanford class CS224U: Natural Language Understanding.
 
-Scraper How-To
-
-	$ python data/scraper.py
-	list of mirror urls: https://www.gutenberg.org/MIRRORS.ALL
-	The scraper will take ~10 minutes to run.
-
-	### IMPORTANT ### Once the scraper has finished running, you must manually
-	adjust one file:
-
-	data/ebooks-unzipped/1916/14571.txt
-		Change the line "encoding:ASCII" to "encoding:latin-1"
-
-	$ python beautify-books.py
-
-	Now the books are in the ebooks directory, in subdirectories by heading.
-
-Book Metadata
-
-	dict of book_id: metadata, where metadata is a dict of 
-		title
-		author
-		year
-		ml_editors_rank
-		ml_readers_rank
-		pub_prog_rank
-		exp_rank
-		bestsellers_rank
-		gender
-		natl
-		num_lists
-
-	to their respective values.
-
-	For each of the "list" values, the value is the book's ranking on the list.
-	If the value is 0, the book was not on that list. 
+We analyzed thematic and stylistic trends in a corpus of 355 popular and critically acclaimed 20th century English-language novels. First, we applied and adapted "the semantic cohort method", a vector space model meant to surface thematically similar words in a corpus; this method was originally proposed by the Stanford Literary Lab. Next, we studied trends in (1) the occurrence of words in these cohorts and (2) stylistic traits of novels, with the goal of demonstrating quantitative analysis’ usefulness as a tool to enrich existing literary scholarship as well as surface new patterns in literature.
